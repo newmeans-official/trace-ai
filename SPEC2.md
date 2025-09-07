@@ -1,6 +1,7 @@
 ## Service Logic Implementation Plan (Gemini integration)
 
 Scope updates (per request):
+
 - Implement only a local/dev client prototype (no server/proxy).
 - Guard: If API key is missing, do NOT fallback to dummy; show an error message and stop.
 - Do not implement `src/services/requests.ts` (no AbortController layer for now).
@@ -31,6 +32,7 @@ Scope updates (per request):
 ### 2) Types: confirm and extend only if needed
 
 No required shape changes, but consider optional metadata:
+
 - `ImageResult`: may add `seed?: string` | `prompt?: string`
 - Keep current contracts to minimize UI churn
 
@@ -70,16 +72,16 @@ export function buildKeywordPrompt(location: LocationInfo, target: Omit<TargetIn
 Return exactly 5 concise style keywords that are plausible for the region and demographics.
 Respond as JSON array of strings, no extra text.
 Context: country=${location.country}, city=${location.city},
-year=${target.shotYear}, month=${target.shotMonth}, age=${String(target.age)}, gender=${target.gender}.`;
+year=${target.shotYear}, month=${target.shotMonth}, age=${String(target.age)}, gender=${target.gender}.`
 }
 
 export function buildImagePrompt(keywords: string[]) {
   return `Generate a realistic portrait variation guided by these style keywords: ${keywords.join(', ')}.
-Keep identity consistent across results; neutral background; photorealistic.`;
+Keep identity consistent across results; neutral background; photorealistic.`
 }
 
 export function buildSeasonPrompt(season: 'Summer' | 'Winter' | 'Spring') {
-  return `Generate a fashion/appearance variation for season: ${season}. Same person, photorealistic.`;
+  return `Generate a fashion/appearance variation for season: ${season}. Same person, photorealistic.`
 }
 ```
 
@@ -89,7 +91,7 @@ File: `src/services/api.ts`
 
 Implement real calls; if API key/model is unavailable, throw an error and surface it in UI.
 
-1) fetchKeywordsByLocation (use gemini-2.5-flash)
+1. fetchKeywordsByLocation (use gemini-2.5-flash)
 
 ```ts
 import { requireClient } from '@/services/genai'
@@ -97,7 +99,7 @@ import { buildKeywordPrompt } from '@/services/prompts'
 
 export const fetchKeywordsByLocation = async (
   location: LocationInfo,
-  target?: Omit<TargetInfo, 'imageFile'>
+  target?: Omit<TargetInfo, 'imageFile'>,
 ): Promise<string[]> => {
   if (!target) throw new Error('Target info is required for keyword generation')
   const ai = requireClient()
@@ -112,13 +114,16 @@ export const fetchKeywordsByLocation = async (
       .slice(0, 5)
   } catch {
     // Lenient parse: split lines / commas as fallback
-    const arr = text.split(/[\n,]/).map((s) => s.replace(/^[-#*\s]+/, '').trim()).filter(Boolean)
+    const arr = text
+      .split(/[\n,]/)
+      .map((s) => s.replace(/^[-#*\s]+/, '').trim())
+      .filter(Boolean)
     return arr.slice(0, 5)
   }
 }
 ```
 
-2) generateImages (use gemini-2.5-flash-image-preview with inlineData)
+2. generateImages (use gemini-2.5-flash-image-preview with inlineData)
 
 ```ts
 import { requireClient, fileToBase64 } from '@/services/genai'
@@ -126,7 +131,7 @@ import { buildImagePrompt } from '@/services/prompts'
 
 export const generateImages = async (
   targetInfo: TargetInfo,
-  keywords: string[]
+  keywords: string[],
 ): Promise<ImageResult[]> => {
   const ai = requireClient()
 
@@ -137,10 +142,7 @@ export const generateImages = async (
   // Multimodal: inlineData + text
   const res = await ai.models.generateContent({
     model: 'gemini-2.5-flash-image-preview',
-    contents: [
-      { inlineData: { data: imageBase64, mimeType } },
-      { text: prompt },
-    ],
+    contents: [{ inlineData: { data: imageBase64, mimeType } }, { text: prompt }],
   })
 
   const parts = (res as any)?.candidates?.[0]?.content?.parts ?? []
@@ -148,11 +150,13 @@ export const generateImages = async (
     .filter((p: any) => p?.inlineData?.mimeType?.startsWith?.('image/'))
     .map((p: any) => `data:${p.inlineData.mimeType};base64,${p.inlineData.data}`)
   if (images.length === 0) throw new Error('No image returned by Gemini')
-  return images.slice(0, 5).map((url: string, i: number) => ({ id: i + 1, imageUrl: url, keywords: keywords.slice(0, 2) }))
+  return images
+    .slice(0, 5)
+    .map((url: string, i: number) => ({ id: i + 1, imageUrl: url, keywords: keywords.slice(0, 2) }))
 }
 ```
 
-3) fetchSeasonalImages (use gemini-2.5-flash-image-preview)
+3. fetchSeasonalImages (use gemini-2.5-flash-image-preview)
 
 ```ts
 import { buildSeasonPrompt } from '@/services/prompts'
@@ -165,11 +169,17 @@ export const fetchSeasonalImages = async (resultId: number): Promise<SeasonalRes
   const out: SeasonalResult[] = []
   for (const s of seasons) {
     const prompt = buildSeasonPrompt(s)
-    const res = await ai.models.generateContent({ model: 'gemini-2.5-flash-image-preview', contents: [{ text: prompt }] })
+    const res = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image-preview',
+      contents: [{ text: prompt }],
+    })
     const parts = (res as any)?.candidates?.[0]?.content?.parts ?? []
     const img = parts.find((p: any) => p.inlineData?.mimeType?.startsWith('image/'))
     if (!img) throw new Error(`No seasonal image for ${s}`)
-    out.push({ season: s, imageUrl: `data:${img.inlineData.mimeType};base64,${img.inlineData.data}` })
+    out.push({
+      season: s,
+      imageUrl: `data:${img.inlineData.mimeType};base64,${img.inlineData.data}`,
+    })
   }
   return out
 }
@@ -225,5 +235,3 @@ export const fetchSeasonalImages = async (resultId: number): Promise<SeasonalRes
 - [ ] Keep 3s UX skeleton while calling Gemini
 - [ ] Basic error parsing/logging; surface a user-friendly message
 - [ ] Validate that outputs match types consumed by UI
-
-

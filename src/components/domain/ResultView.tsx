@@ -17,13 +17,18 @@ export function ResultView({ isLoading, targetInfo, locationInfo, results }: Res
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
   const [seasonals, setSeasonals] = useState<Record<number, SeasonalResult[] | undefined>>({})
   const [loadingIds, setLoadingIds] = useState<Set<number>>(new Set())
+  const [errors, setErrors] = useState<Record<number, string | undefined>>({})
 
   const originalInfoText = useMemo(() => {
     if (!targetInfo || !locationInfo) return '정보 없음'
     const year = targetInfo.shotYear === 'unknown' ? 'Year unknown' : `${targetInfo.shotYear}`
     const month = targetInfo.shotMonth === 'unknown' ? 'Month unknown' : `${targetInfo.shotMonth}`
     const ageText = targetInfo.age === 'unknown' ? 'Age unknown' : `${targetInfo.age} yrs`
-    const genderMap: Record<TargetInfo['gender'], string> = { male: 'Male', female: 'Female', unknown: 'Unknown' }
+    const genderMap: Record<TargetInfo['gender'], string> = {
+      male: 'Male',
+      female: 'Female',
+      unknown: 'Unknown',
+    }
     return `${year} ${month} · ${ageText} · ${genderMap[targetInfo.gender]} · ${locationInfo.city}`
   }, [targetInfo, locationInfo])
 
@@ -39,8 +44,13 @@ export function ResultView({ isLoading, targetInfo, locationInfo, results }: Res
       next.add(id)
       return next
     })
-    const imgs = await fetchSeasonalImages(id)
-    setSeasonals((prev) => ({ ...prev, [id]: imgs }))
+    try {
+      const imgs = await fetchSeasonalImages(id)
+      setSeasonals((prev) => ({ ...prev, [id]: imgs }))
+      setErrors((prev) => ({ ...prev, [id]: undefined }))
+    } catch (e: any) {
+      setErrors((prev) => ({ ...prev, [id]: e?.message || 'Failed to load seasonal images' }))
+    }
     setLoadingIds((prev) => {
       const next = new Set(prev)
       next.delete(id)
@@ -57,7 +67,11 @@ export function ResultView({ isLoading, targetInfo, locationInfo, results }: Res
         <CardContent className="space-y-3">
           <div className="relative flex h-[360px] w-full items-center justify-center overflow-hidden rounded-md border bg-muted/20">
             <img
-              src={targetInfo ? URL.createObjectURL(targetInfo.imageFile) : 'https://via.placeholder.com/600x400?text=Original'}
+              src={
+                targetInfo
+                  ? URL.createObjectURL(targetInfo.imageFile)
+                  : 'https://via.placeholder.com/600x400?text=Original'
+              }
               alt="원본"
               className="max-h-full max-w-full object-contain"
             />
@@ -73,7 +87,7 @@ export function ResultView({ isLoading, targetInfo, locationInfo, results }: Res
         </div>
       ) : (
         <div className="space-y-8">
-          {results.map((r) => (
+          {results.map((r) =>
             expandedIds.has(r.id) ? (
               <div key={r.id} className="grid grid-cols-2 gap-8">
                 <Card>
@@ -99,7 +113,9 @@ export function ResultView({ isLoading, targetInfo, locationInfo, results }: Res
                   {loadingIds.has(r.id) ? (
                     <div className="space-y-2">
                       <Progress value={60} />
-                      <div className="text-sm text-muted-foreground">Loading seasonal images...</div>
+                      <div className="text-sm text-muted-foreground">
+                        Loading seasonal images...
+                      </div>
                     </div>
                   ) : (
                     (seasonals[r.id] || []).map((s) => (
@@ -119,6 +135,7 @@ export function ResultView({ isLoading, targetInfo, locationInfo, results }: Res
                       </Card>
                     ))
                   )}
+                  {errors[r.id] && <div className="text-sm text-red-500">{errors[r.id]}</div>}
                 </div>
               </div>
             ) : (
@@ -147,12 +164,10 @@ export function ResultView({ isLoading, targetInfo, locationInfo, results }: Res
                   </div>
                 </CardContent>
               </Card>
-            )
-          ))}
+            ),
+          )}
         </div>
       )}
     </div>
   )
 }
-
-

@@ -1,6 +1,12 @@
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -19,7 +25,8 @@ export function TargetInfoForm({ disabled, onFormSubmit }: TargetInfoFormProps) 
   const [age, setAge] = useState<string>('')
   const [gender, setGender] = useState<'male' | 'female' | 'unknown'>('unknown')
 
-  const canProceed = (ageUnknown || (!!age && Number(age) >= 0)) && !!shotYear && !!shotMonth && !!gender
+  const canProceed =
+    (ageUnknown || (!!age && Number(age) >= 0)) && !!shotYear && !!shotMonth && !!gender
 
   const handleSubmit = () => {
     if (!canProceed || disabled) return
@@ -37,7 +44,10 @@ export function TargetInfoForm({ disabled, onFormSubmit }: TargetInfoFormProps) 
       <CardHeader>
         <CardTitle>Capture Information</CardTitle>
       </CardHeader>
-      <CardContent className={`space-y-6 ${disabled ? 'pointer-events-none opacity-60' : ''}`} aria-disabled={disabled}>
+      <CardContent
+        className={`space-y-6 ${disabled ? 'pointer-events-none opacity-60' : ''}`}
+        aria-disabled={disabled}
+      >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label className="mb-2 block text-sm font-medium">Capture Year</label>
@@ -93,7 +103,12 @@ export function TargetInfoForm({ disabled, onFormSubmit }: TargetInfoFormProps) 
             />
           </div>
           <div className="mb-2 flex items-center gap-2">
-            <Checkbox id="age-unknown" checked={ageUnknown} onCheckedChange={(v) => setAgeUnknown(Boolean(v))} disabled={disabled} />
+            <Checkbox
+              id="age-unknown"
+              checked={ageUnknown}
+              onCheckedChange={(v) => setAgeUnknown(Boolean(v))}
+              disabled={disabled}
+            />
             <label htmlFor="age-unknown" className="text-sm">
               Unknown
             </label>
@@ -102,7 +117,12 @@ export function TargetInfoForm({ disabled, onFormSubmit }: TargetInfoFormProps) 
 
         <div>
           <label className="mb-2 block text-sm font-medium">Gender</label>
-          <RadioGroup className="flex gap-6" value={gender} onValueChange={(v) => setGender(v as any)} disabled={disabled}>
+          <RadioGroup
+            className="flex gap-6"
+            value={gender}
+            onValueChange={(v) => setGender(v as any)}
+            disabled={disabled}
+          >
             <div className="flex items-center gap-2">
               <RadioGroupItem value="male" id="gender-male" />
               <label htmlFor="gender-male" className="text-sm">
@@ -125,7 +145,12 @@ export function TargetInfoForm({ disabled, onFormSubmit }: TargetInfoFormProps) 
         </div>
 
         <div className="pt-2">
-          <Button type="button" disabled={!canProceed || disabled} onClick={handleSubmit} className="w-full">
+          <Button
+            type="button"
+            disabled={!canProceed || disabled}
+            onClick={handleSubmit}
+            className="w-full"
+          >
             Continue
           </Button>
         </div>
@@ -133,5 +158,3 @@ export function TargetInfoForm({ disabled, onFormSubmit }: TargetInfoFormProps) 
     </Card>
   )
 }
-
-

@@ -10,6 +10,7 @@ This document captures technical implementation details that matter to developer
 - Path alias: `@` → `src` (configured in both `tsconfig*.json` and `vite.config.ts`)
 
 Files of interest:
+
 - `vite.config.ts`: alias `@` mapped to `/src` (no Node.js path usage required)
 - `postcss.config.js`: uses `@tailwindcss/postcss` (Tailwind v4 style)
 - `tailwind.config.js`: minimal v4 content globs and `darkMode: ['class']`
@@ -17,6 +18,7 @@ Files of interest:
 - `index.html`: `<html class="dark brutal">` to force dark mode and enable brutalist styling hooks globally; document title is `Trace AI`
 
 Notes on Tailwind v4:
+
 - CSS contains Tailwind v4 at-rules (`@plugin`, `@custom-variant`, `@theme`) that may show linter warnings but build correctly via PostCSS. Warnings can be ignored.
 
 ### Project structure (selected)
@@ -43,6 +45,7 @@ Notes on Tailwind v4:
     - `src/components/ui/button.tsx`: adds `brutal:shadow-[var(--shadow-brutal)] brutal:border-2`
 
 Tuning:
+
 - Accent color (caution yellow) drives brutalist shadow color. Change `--accent` and `--shadow-brutal` to re-skin quickly.
 - Section fade-ins use `animate-in fade-in-10` (provided by `tailwindcss-animate`).
 
@@ -64,6 +67,7 @@ Tuning:
 Owner: `src/pages/MainPage.tsx`
 
 State:
+
 - `step: 'upload' | 'location' | 'result'`
 - `file: File | null`, `previewUrl: string | null`
 - `targetInfo: Omit<TargetInfo, 'imageFile'> | null`
@@ -71,27 +75,32 @@ State:
 - `results: ImageResult[]`, `isGenerating: boolean`
 
 Transitions and gating:
+
 - Upload step is always rendered; its children are disabled after advancing to later steps.
 - Location step renders only once upload+capture info are complete (`step !== 'upload'`). It is fully disabled after advancing to result.
 - Result step renders only at `step === 'result'`. A `useEffect` triggers `generateImages` once per entry into the result step (guarded by dependencies: `step`, `file`, `targetInfo`, `keywords`).
 
 Scrolling and reset:
+
 - Each section has a `ref`; helpers scroll to target section on step changes/resets (`scrollIntoView({ behavior: 'smooth' })`).
 - `resetFromUpload()`: clears all downstream state (targetInfo, locationInfo, keywords, results, isGenerating), sets `step='upload'` and scrolls to upload.
 - `resetFromLocation()`: clears location-related and results state; sets `step='location'` and scrolls to location.
 
 Known trade-off:
+
 - `ImageUploader` expects `(file: File) => void`. `setFile` is `Dispatch<SetStateAction<File | null>>`, so it is passed as `setFile as any`. A small wrapper like `(f: File) => setFile(f)` would avoid `any`.
 
 ### Components (domain)
 
 `src/components/domain/ImageUploader.tsx`
+
 - Uses `react-dropzone` with `noClick`, `noKeyboard`; explicit “Choose File” button triggers `open()`
 - Props: `{ previewUrl?: string | null; onFileSelected: (file: File) => void; disabled?: boolean }`
 - Visual container: fixed height `h-[360px]`, `object-contain` to preserve aspect ratio (no cropping, no overflow)
 - When `disabled`, disables dropzone (`disabled: true`) and adds `pointer-events-none opacity-60`
 
 `src/components/domain/TargetInfoForm.tsx`
+
 - Local state: `shotYear`, `shotMonth`, `ageUnknown`, `age`, `gender`
 - `canProceed` ensures required values (or unknown options) are present
 - Props: `{ disabled?: boolean; onFormSubmit: (data: Omit<TargetInfo, 'imageFile'>) => void }`
@@ -99,12 +108,14 @@ Known trade-off:
 - Emits sanitized payload on “Continue”
 
 `src/components/domain/LocationSelector.tsx`
+
 - Country → city dependency: `countryToCities` mapping
 - When city changes, calls `fetchKeywordsByLocation`, shows `Progress` bar for ~3s, then renders badges for keywords
 - Props: `{ onLocationSubmit: (location: LocationInfo, keywords: string[]) => void; disabled?: boolean }`
 - Fully disabled until previous step completes; dims controls via `disabled` on shadcn inputs
 
 `src/components/domain/ResultView.tsx`
+
 - Props: `{ isLoading: boolean; targetInfo: TargetInfo | null; locationInfo: LocationInfo | null; results: ImageResult[] }`
 - Original (left/top) card shows uploaded image plus computed info string (`Year/Month/Age/Gender/City`)
 - Results grid (single column list) with per-card expansion:
@@ -135,5 +146,3 @@ Known trade-off:
 - Remove `as any` by wrapping `setFile`: `const handleFile = (f: File) => setFile(f)`
 - Persist step state to session/local storage if desired
 - Add skeletons for original card while generating results (currently shows progress bar only in results list)
-
-

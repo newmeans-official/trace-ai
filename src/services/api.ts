@@ -1,4 +1,5 @@
 import type { LocationInfo, TargetInfo, ImageResult, SeasonalResult } from '@/types'
+import { Type } from '@google/genai'
 import { requireClient, fileToBase64 } from '@/services/genai'
 import { buildKeywordPrompt, buildImagePrompt, buildSeasonPrompt } from '@/services/prompts'
 
@@ -9,16 +10,52 @@ export const fetchKeywordsByLocation = async (
   if (!target) throw new Error('Target info is required for keyword generation')
   const ai = requireClient()
   const prompt = buildKeywordPrompt(location, target)
-  const res = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt })
-  const text = res.text ?? ''
+  const res = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: prompt,
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: { type: Type.ARRAY, items: { type: Type.STRING } },
+    },
+  })
+  let text = res.text ?? ''
   try {
-    const parsed = JSON.parse(text) as string[]
-    return parsed.map((k) => k.trim()).filter(Boolean).slice(0, 5)
+    // Remove common markdown code fence wrappers if present
+    let cleaned = text.trim()
+    if (cleaned.startsWith('```')) {
+      cleaned = cleaned
+        .replace(/^```(?:json)?\s*/i, '')
+        .replace(/```\s*$/i, '')
+        .trim()
+    }
+    const parsed = JSON.parse(cleaned) as string[]
+    return parsed
+      .map((k) => k.trim())
+      .filter(Boolean)
+      .slice(0, 5)
   } catch {
+    // Try to extract the first JSON array substring and parse
+    const match = text.match(/\[[\s\S]*\]/)
+    if (match) {
+      try {
+        const arr = JSON.parse(match[0]) as string[]
+        return arr
+          .map((k) => k.trim())
+          .filter(Boolean)
+          .slice(0, 5)
+      } catch {}
+    }
+    // Lenient fallback: split and sanitize tokens
     const fallback = text
       .split(/[\n,]/)
-      .map((s: string) => s.replace(/^[-#*\s]+/, '').trim())
-      .filter(Boolean)
+      .map((s: string) =>
+        s
+          .replace(/```/g, '')
+          .replace(/^[-#*\s\[\]]+|[\s\[\]]+$/g, '')
+          .replace(/^["'`]+|["'`]+$/g, '')
+          .trim(),
+      )
+      .filter((t) => t && !/^json$/i.test(t))
     return fallback.slice(0, 5)
   }
 }
@@ -35,10 +72,7 @@ export const generateImages = async (
 
   const res = await ai.models.generateContent({
     model: 'gemini-2.5-flash-image-preview',
-    contents: [
-      { inlineData: { data: imageBase64, mimeType } } as any,
-      { text: prompt } as any,
-    ],
+    contents: [{ inlineData: { data: imageBase64, mimeType } } as any, { text: prompt } as any],
   })
 
   const parts = (res as any)?.candidates?.[0]?.content?.parts ?? []
@@ -61,15 +95,19 @@ export const fetchSeasonalImages = async (resultId: number): Promise<SeasonalRes
   const out: SeasonalResult[] = []
   for (const s of seasons as SeasonalResult['season'][]) {
     const prompt = buildSeasonPrompt(s)
-    const res = await ai.models.generateContent({ model: 'gemini-2.5-flash-image-preview', contents: [{ text: prompt } as any] })
+    const res = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image-preview',
+      contents: [{ text: prompt } as any],
+    })
     const parts = (res as any)?.candidates?.[0]?.content?.parts ?? []
     const img = parts.find(
       (p: any) => p?.inlineData?.mimeType && String(p.inlineData.mimeType).startsWith('image/'),
     )
     if (!img) throw new Error(`No seasonal image for ${s}`)
-    out.push({ season: s, imageUrl: `data:${img.inlineData.mimeType};base64,${img.inlineData.data}` })
+    out.push({
+      season: s,
+      imageUrl: `data:${img.inlineData.mimeType};base64,${img.inlineData.data}`,
+    })
   }
   return out
 }
-
-

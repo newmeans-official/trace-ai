@@ -1,15 +1,22 @@
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { fetchKeywordsByLocation } from '@/services/api'
-import type { LocationInfo } from '@/types'
+import type { LocationInfo, TargetInfo } from '@/types'
 
 type LocationSelectorProps = {
   onLocationSubmit: (location: LocationInfo, keywords: string[]) => void
   disabled?: boolean
+  targetInfo?: Omit<TargetInfo, 'imageFile'> | null
 }
 
 const countryToCities: Record<string, { label: string; value: string }[]> = {
@@ -30,11 +37,16 @@ const countryToCities: Record<string, { label: string; value: string }[]> = {
   ],
 }
 
-export function LocationSelector({ onLocationSubmit, disabled }: LocationSelectorProps) {
+export function LocationSelector({
+  onLocationSubmit,
+  disabled,
+  targetInfo,
+}: LocationSelectorProps) {
   const [country, setCountry] = useState<string>('')
   const [city, setCity] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
   const [keywords, setKeywords] = useState<string[]>([])
+  const [error, setError] = useState<string | null>(null)
 
   const handleCountryChange = (value: string) => {
     setCountry(value)
@@ -45,9 +57,16 @@ export function LocationSelector({ onLocationSubmit, disabled }: LocationSelecto
   const handleCityChange = async (value: string) => {
     setCity(value)
     setIsLoading(true)
-    const kws = await fetchKeywordsByLocation({ country, city: value })
-    setKeywords(kws)
-    setIsLoading(false)
+    setError(null)
+    try {
+      const kws = await fetchKeywordsByLocation({ country, city: value }, targetInfo || undefined)
+      setKeywords(kws)
+    } catch (e: any) {
+      setError(e?.message || 'Failed to fetch keywords')
+      setKeywords([])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const canProceed = country && city && !isLoading
@@ -80,7 +99,9 @@ export function LocationSelector({ onLocationSubmit, disabled }: LocationSelecto
               </SelectTrigger>
               <SelectContent>
                 {(countryToCities[country] || []).map((c) => (
-                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  <SelectItem key={c.value} value={c.value}>
+                    {c.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -100,10 +121,12 @@ export function LocationSelector({ onLocationSubmit, disabled }: LocationSelecto
           </div>
         )}
 
+        {error && <div className="text-sm text-red-500">{error}</div>}
+
         <div className="pt-2">
           <Button
             type="button"
-            disabled={!canProceed || !!disabled}
+            disabled={!canProceed || !!disabled || !!error}
             onClick={() => onLocationSubmit({ country, city }, keywords)}
             className="w-full"
           >
@@ -114,5 +137,3 @@ export function LocationSelector({ onLocationSubmit, disabled }: LocationSelecto
     </Card>
   )
 }
-
-

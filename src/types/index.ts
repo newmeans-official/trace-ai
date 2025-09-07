@@ -23,5 +23,3 @@ export interface SeasonalResult {
   season: 'Summer' | 'Winter' | 'Spring'
   imageUrl: string
 }
-
-

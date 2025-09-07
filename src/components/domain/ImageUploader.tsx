@@ -16,7 +16,7 @@ export function ImageUploader({ previewUrl, onFileSelected, disabled }: ImageUpl
         onFileSelected(acceptedFiles[0])
       }
     },
-    [onFileSelected]
+    [onFileSelected],
   )
 
   const { getRootProps, getInputProps, open } = useDropzone({
@@ -59,12 +59,12 @@ export function ImageUploader({ previewUrl, onFileSelected, disabled }: ImageUpl
             <div className="text-sm text-muted-foreground">
               Drag and drop a composite sketch or photo here, or choose a file.
             </div>
-            <Button type="button" onClick={open} disabled={disabled}>Choose File</Button>
+            <Button type="button" onClick={open} disabled={disabled}>
+              Choose File
+            </Button>
           </div>
         )}
       </CardContent>
     </Card>
   )
 }
-
-

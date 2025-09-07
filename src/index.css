@@ -1,5 +1,4 @@
-
-@import "tailwindcss";
+@import 'tailwindcss';
 @plugin "tailwindcss-animate";
 @custom-variant dark (&:is(.dark *));
 
@@ -121,7 +120,13 @@
     background-image:
       radial-gradient(1200px 800px at 10% 0%, rgba(96, 165, 250, 0.08), transparent 60%),
       radial-gradient(1000px 700px at 90% 20%, rgba(246, 201, 14, 0.07), transparent 55%),
-      repeating-linear-gradient(0deg, transparent, transparent 38px, rgba(255,255,255,0.03) 39px, rgba(255,255,255,0.03) 40px);
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 38px,
+        rgba(255, 255, 255, 0.03) 39px,
+        rgba(255, 255, 255, 0.03) 40px
+      );
     background-attachment: fixed;
   }
 }

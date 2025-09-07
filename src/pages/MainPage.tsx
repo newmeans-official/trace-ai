@@ -7,7 +7,6 @@ import { ResultView } from '@/components/domain/ResultView'
 import type { LocationInfo, TargetInfo, ImageResult } from '@/types'
 import { generateImages } from '@/services/api'
 
-
 type Step = 'upload' | 'location' | 'result'
 
 export function MainPage() {
@@ -19,6 +18,7 @@ export function MainPage() {
   const [keywords, setKeywords] = useState<string[]>([])
   const [results, setResults] = useState<ImageResult[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const uploadRef = useRef<HTMLDivElement | null>(null)
   const locationRef = useRef<HTMLDivElement | null>(null)
@@ -35,10 +35,17 @@ export function MainPage() {
     if (step !== 'result' || !file || !targetInfo || !keywords.length) return
     const run = async () => {
       setIsGenerating(true)
+      setError(null)
       const fullTarget: TargetInfo = { imageFile: file, ...targetInfo }
-      const imgs = await generateImages(fullTarget, keywords)
-      setResults(imgs)
-      setIsGenerating(false)
+      try {
+        const imgs = await generateImages(fullTarget, keywords)
+        setResults(imgs)
+      } catch (e: any) {
+        setError(e?.message || 'Failed to generate images')
+        setResults([])
+      } finally {
+        setIsGenerating(false)
+      }
     }
     run()
   }, [step, file, targetInfo, keywords])
@@ -89,7 +96,11 @@ export function MainPage() {
       <Header />
       <main className="mx-auto grid w-full max-w-6xl gap-14 px-6 py-10">
         <section ref={uploadRef} className="grid grid-cols-2 gap-8">
-          <ImageUploader previewUrl={previewUrl} onFileSelected={setFile as any} disabled={step !== 'upload'} />
+          <ImageUploader
+            previewUrl={previewUrl}
+            onFileSelected={setFile as any}
+            disabled={step !== 'upload'}
+          />
           <TargetInfoForm disabled={!file || step !== 'upload'} onFormSubmit={goToLocation} />
           <div className="col-span-2 flex justify-end gap-3">
             {step !== 'upload' && (
@@ -101,20 +112,37 @@ export function MainPage() {
         </section>
 
         {step !== 'upload' && (
-        <section ref={locationRef} className="">
-          <LocationSelector disabled={step !== 'location'} onLocationSubmit={goToResult} />
-          <div className="mt-2 flex justify-end gap-3">
-            <button className="text-sm text-muted-foreground underline" onClick={resetFromLocation}>
-              Reset (Location)
-            </button>
-          </div>
-        </section>
+          <section ref={locationRef} className="">
+            <LocationSelector
+              disabled={step !== 'location'}
+              onLocationSubmit={goToResult}
+              targetInfo={targetInfo || (undefined as any)}
+            />
+            <div className="mt-2 flex justify-end gap-3">
+              <button
+                className="text-sm text-muted-foreground underline"
+                onClick={resetFromLocation}
+              >
+                Reset (Location)
+              </button>
+            </div>
+          </section>
         )}
 
         {step === 'result' && (
-        <section ref={resultRef} className="">
-          <ResultView isLoading={isGenerating} targetInfo={fullTargetInfo} locationInfo={locationInfo} results={results} />
-        </section>
+          <section ref={resultRef} className="">
+            {error && (
+              <div className="mb-4 rounded-md border border-red-500 bg-red-950/30 p-3 text-sm text-red-200">
+                {error}
+              </div>
+            )}
+            <ResultView
+              isLoading={isGenerating}
+              targetInfo={fullTargetInfo}
+              locationInfo={locationInfo}
+              results={results}
+            />
+          </section>
         )}
       </main>
     </div>
@@ -122,5 +150,3 @@ export function MainPage() {
 }
 
 export default MainPage
-
-
