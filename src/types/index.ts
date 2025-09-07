@@ -11,6 +11,7 @@ export interface TargetInfo {
 export interface LocationInfo {
   country: string
   city: string
+  neighborhood?: string
 }
 
 export interface ImageResult {
