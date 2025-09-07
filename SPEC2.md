@@ -8,8 +8,8 @@ Scope updates (per request):
 
 ### 0) Dependencies and configuration
 
-- Add Gemini SDK (JS GenAI) for client prototype:
-  - `npm i @google/generative-ai`
+- Add Gemini SDK (JS GenAI) for client prototype (new unified SDK):
+  - `npm i @google/genai`
 - Env variable (dev only):
   - `VITE_GEMINI_API_KEY`
 - Config handling:
@@ -40,13 +40,12 @@ File: `src/services/genai.ts`
 
 ```ts
 // src/services/genai.ts
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenAI } from '@google/genai'
 
-export function requireGenerativeModel(model: string) {
+export function requireClient() {
   const key = import.meta.env.VITE_GEMINI_API_KEY as string | undefined
   if (!key) throw new Error('Missing Gemini API key')
-  const genAI = new GoogleGenerativeAI(key)
-  return genAI.getGenerativeModel({ model })
+  return new GoogleGenAI({ apiKey: key })
 }
 
 export async function fileToBase64(file: File): Promise<string> {
@@ -93,7 +92,7 @@ Implement real calls; if API key/model is unavailable, throw an error and surfac
 1) fetchKeywordsByLocation (use gemini-2.5-flash)
 
 ```ts
-import { requireGenerativeModel } from '@/services/genai'
+import { requireClient } from '@/services/genai'
 import { buildKeywordPrompt } from '@/services/prompts'
 
 export const fetchKeywordsByLocation = async (
@@ -101,11 +100,10 @@ export const fetchKeywordsByLocation = async (
   target?: Omit<TargetInfo, 'imageFile'>
 ): Promise<string[]> => {
   if (!target) throw new Error('Target info is required for keyword generation')
-  const model = requireGenerativeModel('gemini-2.5-flash')
-
+  const ai = requireClient()
   const prompt = buildKeywordPrompt(location, target)
-  const res = await model.generateContent(prompt)
-  const text = res.response.text()
+  const res = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt })
+  const text = res.text ?? ''
   try {
     const arr = JSON.parse(text) as string[]
     return arr
@@ -120,57 +118,55 @@ export const fetchKeywordsByLocation = async (
 }
 ```
 
-2) generateImages (use gemini-2.5-flash-image)
+2) generateImages (use gemini-2.5-flash-image-preview with inlineData)
 
 ```ts
-import { requireGenerativeModel, fileToBase64 } from '@/services/genai'
+import { requireClient, fileToBase64 } from '@/services/genai'
 import { buildImagePrompt } from '@/services/prompts'
 
 export const generateImages = async (
   targetInfo: TargetInfo,
   keywords: string[]
 ): Promise<ImageResult[]> => {
-  const model = requireGenerativeModel('gemini-2.5-flash-image')
+  const ai = requireClient()
 
   const imageBase64 = await fileToBase64(targetInfo.imageFile)
   const mimeType = targetInfo.imageFile.type || 'image/jpeg'
   const prompt = buildImagePrompt(keywords)
 
-  // Gemini image generation with multi-part (text + image)
-  const res = await model.generateContent([
-    { text: prompt },
-    { inlineData: { data: imageBase64, mimeType } },
-  ])
+  // Multimodal: inlineData + text
+  const res = await ai.models.generateContent({
+    model: 'gemini-2.5-flash-image-preview',
+    contents: [
+      { inlineData: { data: imageBase64, mimeType } },
+      { text: prompt },
+    ],
+  })
 
-  // Extract image(s) from response. Depending on SDK, inspect parts for inlineData.
-  // Pseudocode; implement against actual SDK return shape from googleapis/js-genai docs.
-  const parts = (res as any)?.response?.candidates?.[0]?.content?.parts ?? []
-  const images: string[] = []
-  for (const p of parts) {
-    if (p.inlineData?.mimeType?.startsWith('image/')) {
-      images.push(`data:${p.inlineData.mimeType};base64,${p.inlineData.data}`)
-    }
-  }
+  const parts = (res as any)?.candidates?.[0]?.content?.parts ?? []
+  const images = parts
+    .filter((p: any) => p?.inlineData?.mimeType?.startsWith?.('image/'))
+    .map((p: any) => `data:${p.inlineData.mimeType};base64,${p.inlineData.data}`)
   if (images.length === 0) throw new Error('No image returned by Gemini')
-  return images.slice(0, 5).map((url, i) => ({ id: i + 1, imageUrl: url, keywords: keywords.slice(0, 2) }))
+  return images.slice(0, 5).map((url: string, i: number) => ({ id: i + 1, imageUrl: url, keywords: keywords.slice(0, 2) }))
 }
 ```
 
-3) fetchSeasonalImages (use gemini-2.5-flash-image)
+3) fetchSeasonalImages (use gemini-2.5-flash-image-preview)
 
 ```ts
 import { buildSeasonPrompt } from '@/services/prompts'
 
 export const fetchSeasonalImages = async (resultId: number): Promise<SeasonalResult[]> => {
-  const model = requireGenerativeModel('gemini-2.5-flash-image')
+  const ai = requireClient()
 
   // For MVP, call 3 times sequentially; can be parallelized with Promise.all later
   const seasons: SeasonalResult['season'][] = ['Summer', 'Winter', 'Spring']
   const out: SeasonalResult[] = []
   for (const s of seasons) {
     const prompt = buildSeasonPrompt(s)
-    const res = await model.generateContent([{ text: prompt }])
-    const parts = (res as any)?.response?.candidates?.[0]?.content?.parts ?? []
+    const res = await ai.models.generateContent({ model: 'gemini-2.5-flash-image-preview', contents: [{ text: prompt }] })
+    const parts = (res as any)?.candidates?.[0]?.content?.parts ?? []
     const img = parts.find((p: any) => p.inlineData?.mimeType?.startsWith('image/'))
     if (!img) throw new Error(`No seasonal image for ${s}`)
     out.push({ season: s, imageUrl: `data:${img.inlineData.mimeType};base64,${img.inlineData.data}` })

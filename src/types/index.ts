@@ -15,6 +15,8 @@ export interface ImageResult {
   id: number
   imageUrl: string
   keywords: string[]
+  seed?: string
+  prompt?: string
 }
 
 export interface SeasonalResult {

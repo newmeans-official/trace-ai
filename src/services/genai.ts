@@ -1,13 +1,12 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenAI } from '@google/genai'
 
-// Ensures an API key is present and returns a Gemini model instance
-export function requireGenerativeModel(model: string) {
+// Ensures an API key is present and returns a GoogleGenAI client
+export function requireClient() {
   const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY as string | undefined
   if (!apiKey) {
     throw new Error('Missing Gemini API key')
   }
-  const genAI = new GoogleGenerativeAI(apiKey)
-  return genAI.getGenerativeModel({ model })
+  return new GoogleGenAI({ apiKey })
 }
 
 // Converts a File to a base64 string (no data: prefix)
