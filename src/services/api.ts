@@ -9,6 +9,45 @@ import {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
+// Removes markdown code fences from a text block
+function cleanCodeFence(text: string): string {
+  let cleaned = text.trim()
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/```\s*$/i, '')
+      .trim()
+  }
+  return cleaned
+}
+
+// Logs grounding sources and queries for debugging if present
+function logGrounding(label: string, res: any) {
+  try {
+    const gm = res?.candidates?.[0]?.groundingMetadata
+    const urls = (gm?.groundingChunks || []).map((c: any) => c?.web?.uri).filter(Boolean)
+    if (urls?.length) console.log(`[LLM:${label}:sources]`, urls)
+    if (Array.isArray(gm?.webSearchQueries) && gm.webSearchQueries.length)
+      console.log(`[LLM:${label}:queries]`, gm.webSearchQueries)
+  } catch {}
+}
+
+// Resolves the image content to base64 + mime, optionally preferring a provided data URL
+async function resolveImageContent(
+  targetInfo: TargetInfo,
+  baseImageDataUrl?: string,
+): Promise<{ base64: string; mimeType: string }> {
+  if (baseImageDataUrl) {
+    const parsed = parseDataUrl(baseImageDataUrl)
+    if (parsed) return { base64: parsed.base64, mimeType: parsed.mimeType }
+  }
+  const base64 = await fileToBase64(targetInfo.imageFile)
+  const mimeType = targetInfo.imageFile.type || 'image/jpeg'
+  return { base64, mimeType }
+}
+
+// (Intentionally no hard timeout; LLM calls may take long.)
+
 export const fetchKeywordsByLocation = async (
   location: LocationInfo,
   target?: Omit<TargetInfo, 'imageFile'>,
@@ -21,20 +60,14 @@ export const fetchKeywordsByLocation = async (
     model: 'gemini-2.5-flash',
     contents: prompt,
     config: {
-      responseMimeType: 'application/json',
+      tools: [{ googleSearch: {} }],
     },
   })
   let text = res.text ?? ''
   console.log('[LLM:keywords:raw]', text)
+  logGrounding('keywords', res as any)
   try {
-    // Remove common markdown code fence wrappers if present
-    let cleaned = text.trim()
-    if (cleaned.startsWith('```')) {
-      cleaned = cleaned
-        .replace(/^```(?:json)?\s*/i, '')
-        .replace(/```\s*$/i, '')
-        .trim()
-    }
+    const cleaned = cleanCodeFence(text)
     const parsed = JSON.parse(cleaned) as PlannerOutput | string[]
     if (Array.isArray(parsed)) {
       return parsed.map((k) => String(k).trim()).filter(Boolean)
@@ -111,18 +144,13 @@ export const fetchPlannerByLocation = async (
   const res = await ai.models.generateContent({
     model: 'gemini-2.5-flash',
     contents: prompt,
-    config: { responseMimeType: 'application/json' },
+    config: { tools: [{ googleSearch: {} }] },
   })
   const text = res.text ?? ''
   console.log('[LLM:planner:raw]', text)
+  logGrounding('planner', res as any)
   // Clean markdown code fences
-  let cleaned = text.trim()
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned
-      .replace(/^```(?:json)?\s*/i, '')
-      .replace(/```\s*$/i, '')
-      .trim()
-  }
+  let cleaned = cleanCodeFence(text)
   let parsed: PlannerOutput | null = null
   try {
     parsed = JSON.parse(cleaned) as PlannerOutput
@@ -160,22 +188,7 @@ export const generateImagesFromDisguises = async (
   baseImageDataUrl?: string,
 ): Promise<ImageResult[]> => {
   const ai = requireClient()
-
-  let imageBase64: string
-  let mimeType: string
-  if (baseImageDataUrl) {
-    const parsed = parseDataUrl(baseImageDataUrl)
-    if (parsed) {
-      imageBase64 = parsed.base64
-      mimeType = parsed.mimeType
-    } else {
-      imageBase64 = await fileToBase64(targetInfo.imageFile)
-      mimeType = targetInfo.imageFile.type || 'image/jpeg'
-    }
-  } else {
-    imageBase64 = await fileToBase64(targetInfo.imageFile)
-    mimeType = targetInfo.imageFile.type || 'image/jpeg'
-  }
+  const { base64: imageBase64, mimeType } = await resolveImageContent(targetInfo, baseImageDataUrl)
 
   const results: ImageResult[] = []
   for (let i = 0; i < items.length; i++) {
@@ -205,6 +218,9 @@ export const generateImagesFromDisguises = async (
     } catch (e) {
       console.warn('[ERROR:disguise-image]', e)
     }
+    if (i < items.length - 1) {
+      await sleep(5000)
+    }
   }
   if (!results.length) throw new Error('No images returned for disguise prompts')
   return results
@@ -212,8 +228,7 @@ export const generateImagesFromDisguises = async (
 
 export const generateBaseImage = async (targetInfo: TargetInfo): Promise<string> => {
   const ai = requireClient()
-  const imageBase64 = await fileToBase64(targetInfo.imageFile)
-  const mimeType = targetInfo.imageFile.type || 'image/jpeg'
+  const { base64: imageBase64, mimeType } = await resolveImageContent(targetInfo)
   const prompt = buildBaseImagePrompt({
     shotYear: targetInfo.shotYear,
     age: targetInfo.age,

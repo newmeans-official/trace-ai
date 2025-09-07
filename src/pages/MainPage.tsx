@@ -4,12 +4,8 @@ import { ImageUploader } from '@/components/domain/ImageUploader'
 import { TargetInfoForm } from '@/components/domain/TargetInfoForm'
 import { LocationSelector } from '@/components/domain/LocationSelector'
 import { ResultView } from '@/components/domain/ResultView'
-import type { LocationInfo, TargetInfo, ImageResult } from '@/types'
-import {
-  generateBaseImage,
-  fetchPlannerByLocation,
-  generateImagesFromDisguises,
-} from '@/services/api'
+import type { LocationInfo, TargetInfo, ImageResult, PlannerOutput } from '@/types'
+import { generateBaseImage, generateImagesFromDisguises } from '@/services/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 
@@ -27,6 +23,41 @@ export function MainPage() {
   const [error, setError] = useState<string | null>(null)
   const [baseImageUrl, setBaseImageUrl] = useState<string | null>(null)
   const [isBaseGenerating, setIsBaseGenerating] = useState(false)
+  const [plannerData, setPlannerData] = useState<{
+    planner: PlannerOutput
+    keywordToPrompt: Record<string, string>
+  } | null>(null)
+  const keywordToReasoning = useMemo(() => {
+    const map: Record<string, string> = {}
+    const cats: Array<keyof PlannerOutput> = [
+      'Occupation/Status',
+      'Environmental Blending',
+      'Short-term Labor',
+    ]
+    const personas = cats.flatMap((c) => plannerData?.planner?.[c] || [])
+    for (const p of personas) {
+      const k = String(p.keyword || '').trim()
+      const r = String(p.reasoning || '').trim()
+      if (k && r && !map[k]) map[k] = r
+    }
+    return map
+  }, [plannerData])
+
+  const keywordToCategory = useMemo(() => {
+    const map: Record<string, string> = {}
+    const cats: Array<keyof PlannerOutput> = [
+      'Occupation/Status',
+      'Environmental Blending',
+      'Short-term Labor',
+    ]
+    for (const c of cats) {
+      for (const p of plannerData?.planner?.[c] || []) {
+        const k = String(p.keyword || '').trim()
+        if (k && !map[k]) map[k] = c
+      }
+    }
+    return map
+  }, [plannerData])
   const computedAge = useMemo(() => {
     if (!targetInfo || targetInfo.shotYear === 'unknown') return 'Unknown'
     const nowYear = new Date().getFullYear()
@@ -76,17 +107,62 @@ export function MainPage() {
       setError(null)
       const fullTarget: TargetInfo = { imageFile: file, ...targetInfo }
       try {
-        // Fetch full planner to map keywords -> disguise prompts
-        const { keywordToPrompt } = await fetchPlannerByLocation(
-          { country: locationInfo?.country || '', city: locationInfo?.city || '' },
-          targetInfo,
-        )
-        const items = keywords
-          .map((k) => ({ keyword: k, disguisePrompt: keywordToPrompt[k] }))
-          .filter((it) => it.disguisePrompt)
-        if (!items.length) {
-          throw new Error('No disguise prompts found for generated keywords')
+        // Use planner and mapping obtained in the location step for consistency
+        let planner: PlannerOutput | null = plannerData?.planner || null
+        let keywordToPrompt: Record<string, string> = plannerData?.keywordToPrompt || {}
+
+        // If for some reason planner is missing, bail out
+        if (!planner) throw new Error('Planner data missing. Please retry from location step.')
+        const cats: Array<keyof typeof planner> = [
+          'Occupation/Status',
+          'Environmental Blending',
+          'Short-term Labor',
+        ]
+        const personas = cats.flatMap((c) => planner?.[c] || [])
+        const normalize = (s: string) =>
+          String(s || '')
+            .toLowerCase()
+            .replace(/\([^)]*\)/g, '')
+            .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+
+        // Build normalized map from persona keywords -> disguise_prompt
+        const personaMap = new Map<string, string>()
+        for (const p of personas) {
+          const k = normalize(p.keyword)
+          const v = String(p.disguise_prompt || '').trim()
+          if (k && v && !personaMap.has(k)) personaMap.set(k, v)
         }
+
+        // Primary: map UI keywords to persona prompts by normalization
+        let items = keywords
+          .map((k) => {
+            const nk = normalize(k)
+            let dp = personaMap.get(nk) || (keywordToPrompt as any)?.[k]
+            if (!dp) {
+              // Fuzzy fallback: symmetric substring match after normalization
+              const found = personas.find((p) => {
+                const pk = normalize(p.keyword)
+                return pk.includes(nk) || nk.includes(pk)
+              })
+              dp = found ? String(found.disguise_prompt || '').trim() : ''
+            }
+            if (!dp) console.warn('[WARN:disguise-prompt-missing-for-keyword]', k)
+            return { keyword: k, disguisePrompt: dp }
+          })
+          .filter((it) => it.disguisePrompt)
+        // Fallback: if planner personas are too few, merge with mapping built from selected keywords
+        if (items.length < 3 && keywords.length) {
+          const mapped = keywords
+            .map((k) => ({ keyword: k, disguisePrompt: (keywordToPrompt as any)?.[k] }))
+            .filter((it) => it.disguisePrompt)
+          const mergedMap = new Map<string, { keyword: string; disguisePrompt: string }>()
+          for (const it of [...items, ...mapped]) mergedMap.set(it.keyword, it)
+          items = Array.from(mergedMap.values())
+        }
+        // No second LLM call; rely on existing planner only
+        if (!items.length) throw new Error('No disguise prompts found for generated keywords')
         // Use disguise-only prompts: draw {disguise_prompt}
         const imgs = await generateImagesFromDisguises(fullTarget, items, baseImageUrl || undefined)
         setResults(imgs)
@@ -98,7 +174,7 @@ export function MainPage() {
       }
     }
     run()
-  }, [step, file, targetInfo, keywords, baseImageUrl, locationInfo])
+  }, [step, file, targetInfo, keywords, baseImageUrl, locationInfo, plannerData])
 
   const fullTargetInfo = useMemo(() => {
     if (!file || !targetInfo) return null
@@ -117,6 +193,7 @@ export function MainPage() {
     setIsGenerating(false)
     setBaseImageUrl(null)
     setIsBaseGenerating(false)
+    setPlannerData(null)
     setStep('upload')
     scrollTo(uploadRef)
   }
@@ -128,6 +205,7 @@ export function MainPage() {
     setIsGenerating(false)
     setBaseImageUrl(null)
     setIsBaseGenerating(false)
+    setPlannerData(null)
     setStep('location')
     scrollTo(locationRef)
   }
@@ -138,9 +216,17 @@ export function MainPage() {
     setTimeout(() => scrollTo(locationRef), 0)
   }
 
-  const goToResult = (loc: LocationInfo, kws: string[]) => {
+  const goToResult = (
+    loc: LocationInfo,
+    payload: {
+      keywords: string[]
+      planner: PlannerOutput
+      keywordToPrompt: Record<string, string>
+    },
+  ) => {
     setLocationInfo(loc)
-    setKeywords(kws)
+    setKeywords(payload.keywords)
+    setPlannerData({ planner: payload.planner, keywordToPrompt: payload.keywordToPrompt })
     setStep('result')
     setTimeout(() => scrollTo(resultRef), 0)
   }
@@ -220,6 +306,8 @@ export function MainPage() {
               locationInfo={locationInfo}
               results={results}
               baseImageUrl={baseImageUrl}
+              keywordToReasoning={keywordToReasoning}
+              keywordToCategory={keywordToCategory}
             />
           </section>
         )}

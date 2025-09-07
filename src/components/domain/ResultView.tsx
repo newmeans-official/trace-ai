@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, PersonaCard } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -12,6 +12,8 @@ type ResultViewProps = {
   locationInfo: LocationInfo | null
   results: ImageResult[]
   baseImageUrl?: string | null
+  keywordToReasoning?: Record<string, string>
+  keywordToCategory?: Record<string, string>
 }
 
 export function ResultView({
@@ -20,6 +22,8 @@ export function ResultView({
   locationInfo,
   results,
   baseImageUrl,
+  keywordToReasoning = {},
+  keywordToCategory = {},
 }: ResultViewProps) {
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
   const [seasonals, setSeasonals] = useState<Record<number, SeasonalResult[] | undefined>>({})
@@ -63,6 +67,24 @@ export function ResultView({
       next.delete(id)
       return next
     })
+  }
+
+  const getPrimaryInfo = (
+    res: ImageResult,
+  ): { primaryKeyword: string; reasoning: string; category?: string } => {
+    let primaryKeyword = res.keywords[0] || ''
+    let reasoning = ''
+    let category: string | undefined = undefined
+    for (const k of res.keywords) {
+      const r = keywordToReasoning?.[k]
+      if (r) {
+        primaryKeyword = k
+        reasoning = r
+        category = keywordToCategory?.[k]
+        break
+      }
+    }
+    return { primaryKeyword, reasoning, category }
   }
 
   return (
@@ -148,31 +170,37 @@ export function ResultView({
                 </div>
               </div>
             ) : (
-              <Card key={r.id} className="relative">
-                <CardContent className="space-y-3 p-6">
-                  <div className="relative">
-                    <div className="relative flex h-[360px] w-full items-center justify-center overflow-hidden rounded-md border bg-muted/20">
-                      <img
-                        src={r.imageUrl}
-                        alt={`결과 ${r.id}`}
-                        className="h-full w-full object-contain"
-                      />
-                    </div>
-                    {!expandedIds.has(r.id) && (
-                      <div className="absolute right-3 top-3">
-                        <Button size="sm" variant="secondary" onClick={() => handleExpand(r.id)}>
-                          계절별 보기
-                        </Button>
-                      </div>
-                    )}
+              <div key={r.id} className="relative space-y-3">
+                {(() => {
+                  const { primaryKeyword, reasoning, category } = getPrimaryInfo(r)
+                  return (
+                    <PersonaCard
+                      keyword={primaryKeyword || r.keywords[0] || 'Persona'}
+                      reasoning={
+                        reasoning ||
+                        'No detailed reasoning available for this keyword. Try expanding to view more details.'
+                      }
+                      subtitle={category ? `${category} Persona` : 'Persona'}
+                      imageSide="left"
+                      imageUrl={r.imageUrl}
+                      imageAlt={`결과 ${r.id}`}
+                    />
+                  )
+                })()}
+                {!expandedIds.has(r.id) && (
+                  <div className="absolute right-3 top-3">
+                    <Button size="sm" variant="secondary" onClick={() => handleExpand(r.id)}>
+                      계절별 보기
+                    </Button>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {r.keywords.map((k) => (
-                      <Badge key={k}>{k}</Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                )}
+                {/* Keep badges below for supplementary context; matches reference emphasis on title/body */}
+                <div className="flex flex-wrap gap-2">
+                  {r.keywords.map((k) => (
+                    <Badge key={k}>{k}</Badge>
+                  ))}
+                </div>
+              </div>
             ),
           )}
         </div>

@@ -4,11 +4,14 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api'
-import { fetchKeywordsByLocation } from '@/services/api'
-import type { LocationInfo, TargetInfo } from '@/types'
+import { fetchPlannerByLocation } from '@/services/api'
+import type { LocationInfo, TargetInfo, PlannerOutput } from '@/types'
 
 type LocationSelectorProps = {
-  onLocationSubmit: (location: LocationInfo, keywords: string[]) => void
+  onLocationSubmit: (
+    location: LocationInfo,
+    data: { keywords: string[]; planner: PlannerOutput; keywordToPrompt: Record<string, string> },
+  ) => void
   disabled?: boolean
   targetInfo?: Omit<TargetInfo, 'imageFile'> | null
 }
@@ -88,12 +91,7 @@ export function LocationSelector({
         if (!country || !city) throw new Error('Unable to resolve country/city here')
         const loc: LocationInfo = { country, city, neighborhood }
         setLocation(loc)
-        if (targetInfo) {
-          const kws = await fetchKeywordsByLocation(loc, targetInfo)
-          setKeywords(kws)
-        } else {
-          setKeywords([])
-        }
+        setKeywords([])
       } catch (e: any) {
         setError(e?.message || 'Failed to resolve address')
         setLocation(null)
@@ -205,7 +203,29 @@ export function LocationSelector({
           <Button
             type="button"
             disabled={!canProceed || !!disabled}
-            onClick={() => location && onLocationSubmit(location, keywords)}
+            onClick={async () => {
+              if (!location) return
+              if (!targetInfo) {
+                setError('Target info is required before generating keywords')
+                return
+              }
+              setIsLoading(true)
+              setError(null)
+              try {
+                const {
+                  planner,
+                  keywords: kws,
+                  keywordToPrompt,
+                } = await fetchPlannerByLocation(location, targetInfo)
+                setKeywords(kws)
+                onLocationSubmit(location, { keywords: kws, planner, keywordToPrompt })
+              } catch (e: any) {
+                setError(e?.message || 'Failed to fetch keywords')
+                setKeywords([])
+              } finally {
+                setIsLoading(false)
+              }
+            }}
             className="w-full"
           >
             Continue

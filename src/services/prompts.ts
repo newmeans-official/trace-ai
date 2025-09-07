@@ -97,18 +97,10 @@ Generate a portfolio of approximately 10 personas, intelligently distributed acr
 For each persona, provide the following three outputs:
 
 - keyword (English): A concise, neutral noun phrase.
-- reasoning (English): A rigorous justification. First, explain HOW the persona satisfies the Low Barrier to Entry rule. Second, explicitly state and explain which of the three Criminal Psychology Principles makes this a compelling choice. Reference the specific category (A, B, C, D, or E) it falls under.
-- disguise_prompt (English): A prompt designed to modify an existing front-facing mugshot. It must ONLY describe changeable, external elements visible from the chest-up. DO NOT describe the subject's inherent features (age, race, face) or details below the chest (hands, waist, etc.). Use the new, structured template below.
-    
-    Disguise & Stress Modification Template:
-    
-    Disguise Details: Wearing [Detailed clothing & accessories visible from the chest up], [Hairstyle].
-    Psychological State: [Expression, e.g., tense, paranoid, vacant].
-    Physical Toll of Evasion:
-      - Skin: [sallow, dehydrated, stress acne, deepened fatigue lines, etc.]
-      - Eyes: [guarded, hyper-vigilant look, dark circles, bloodshot, etc.]
-      - Physical Tells: [noticeable weight loss/gain, tense posture of the shoulders, unkempt grooming, etc.]
-    Style: Studio portrait, plain white background.
+- reasoning (English): Ultra-condensed, single line in EXACT format — "Barrier: [No-ID, Cash-Pay, Night-shift, etc.] | Psych: [Minimal Social Footprint | Cognitive Comfort | Paranoid Vigilance] | Cat: [A|B|C|D|E]".
+- disguise_prompt (English): STRICT chest-up portrait modification only. Do NOT describe inherent features (age, race, face shape) or anything below the chest (hands, waist, props). Do NOT describe pose/actions. Use this exact structure as a single paragraph:
+
+    MODIFICATIONS: Clothing is [detailed clothing visible on chest/shoulders], hair is [style/condition], accessories are [e.g., glasses, beanie, none]. STRESS INDICATORS: Expression is [e.g., paranoid, weary, vacant], skin appears [e.g., sallow, dehydrated, stress-induced acne], eyes are [e.g., bloodshot with dark circles, constantly scanning]. FORMAT: Chest-up studio portrait, subject facing camera directly, plain white background.
 
 **[OUTPUT FORMAT]**
 
