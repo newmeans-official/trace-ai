@@ -9,6 +9,7 @@ import type { LocationInfo } from '@/types'
 
 type LocationSelectorProps = {
   onLocationSubmit: (location: LocationInfo, keywords: string[]) => void
+  disabled?: boolean
 }
 
 const countryToCities: Record<string, { label: string; value: string }[]> = {
@@ -29,7 +30,7 @@ const countryToCities: Record<string, { label: string; value: string }[]> = {
   ],
 }
 
-export function LocationSelector({ onLocationSubmit }: LocationSelectorProps) {
+export function LocationSelector({ onLocationSubmit, disabled }: LocationSelectorProps) {
   const [country, setCountry] = useState<string>('')
   const [city, setCity] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
@@ -60,8 +61,8 @@ export function LocationSelector({ onLocationSubmit }: LocationSelectorProps) {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label className="mb-2 block text-sm font-medium">국가</label>
-            <Select value={country} onValueChange={handleCountryChange}>
-              <SelectTrigger>
+            <Select value={country} onValueChange={handleCountryChange} disabled={disabled}>
+              <SelectTrigger disabled={disabled}>
                 <SelectValue placeholder="국가 선택" />
               </SelectTrigger>
               <SelectContent>
@@ -73,8 +74,8 @@ export function LocationSelector({ onLocationSubmit }: LocationSelectorProps) {
           </div>
           <div>
             <label className="mb-2 block text-sm font-medium">도시</label>
-            <Select value={city} onValueChange={handleCityChange} disabled={!country}>
-              <SelectTrigger>
+            <Select value={city} onValueChange={handleCityChange} disabled={!country || disabled}>
+              <SelectTrigger disabled={!country || disabled}>
                 <SelectValue placeholder="도시 선택" />
               </SelectTrigger>
               <SelectContent>
@@ -102,7 +103,7 @@ export function LocationSelector({ onLocationSubmit }: LocationSelectorProps) {
         <div className="pt-2">
           <Button
             type="button"
-            disabled={!canProceed}
+            disabled={!canProceed || !!disabled}
             onClick={() => onLocationSubmit({ country, city }, keywords)}
             className="w-full"
           >

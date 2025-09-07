@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button'
 type ImageUploaderProps = {
   previewUrl?: string | null
   onFileSelected: (file: File) => void
+  disabled?: boolean
 }
 
-export function ImageUploader({ previewUrl, onFileSelected }: ImageUploaderProps) {
+export function ImageUploader({ previewUrl, onFileSelected, disabled }: ImageUploaderProps) {
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (acceptedFiles && acceptedFiles[0]) {
@@ -24,15 +25,16 @@ export function ImageUploader({ previewUrl, onFileSelected }: ImageUploaderProps
     maxFiles: 1,
     noClick: true,
     noKeyboard: true,
+    disabled: Boolean(disabled),
   })
 
   return (
     <Card className="w-full">
       <CardContent className="p-6">
         {previewUrl ? (
-          <div className="space-y-4">
+          <div className="space-y-4" aria-disabled={disabled}>
             <div
-              className="relative flex h-[360px] w-full cursor-pointer items-center justify-center overflow-hidden rounded-md border bg-muted/20"
+              className={`relative flex h-[360px] w-full items-center justify-center overflow-hidden rounded-md border bg-muted/20 ${disabled ? 'pointer-events-none opacity-60' : 'cursor-pointer'}`}
               {...getRootProps()}
             >
               <input {...getInputProps()} />
@@ -43,21 +45,21 @@ export function ImageUploader({ previewUrl, onFileSelected }: ImageUploaderProps
               />
             </div>
             <div className="flex">
-              <Button type="button" variant="outline" onClick={open}>
+              <Button type="button" variant="outline" onClick={open} disabled={disabled}>
                 변경
               </Button>
             </div>
           </div>
         ) : (
           <div
-            className="flex cursor-pointer flex-col items-center justify-center gap-4 rounded-md border-2 border-dashed p-10 text-center"
+            className={`flex flex-col items-center justify-center gap-4 rounded-md border-2 border-dashed p-10 text-center ${disabled ? 'pointer-events-none opacity-60' : 'cursor-pointer'}`}
             {...getRootProps()}
           >
             <input {...getInputProps()} />
             <div className="text-sm text-muted-foreground">
               여기에 타겟 인물의 몽타주 또는 사진 파일을 드래그하거나, 파일을 선택하세요.
             </div>
-            <Button type="button" onClick={open}>파일 선택</Button>
+            <Button type="button" onClick={open} disabled={disabled}>파일 선택</Button>
           </div>
         )}
       </CardContent>

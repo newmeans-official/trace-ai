@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Header } from '@/components/layout/Header'
 import { ImageUploader } from '@/components/domain/ImageUploader'
 import { TargetInfoForm } from '@/components/domain/TargetInfoForm'
@@ -6,6 +6,7 @@ import { LocationSelector } from '@/components/domain/LocationSelector'
 import { ResultView } from '@/components/domain/ResultView'
 import type { LocationInfo, TargetInfo, ImageResult } from '@/types'
 import { generateImages } from '@/services/api'
+
 
 type Step = 'upload' | 'location' | 'result'
 
@@ -18,6 +19,10 @@ export function MainPage() {
   const [keywords, setKeywords] = useState<string[]>([])
   const [results, setResults] = useState<ImageResult[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
+
+  const uploadRef = useRef<HTMLDivElement | null>(null)
+  const locationRef = useRef<HTMLDivElement | null>(null)
+  const resultRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (!file) return
@@ -38,51 +43,78 @@ export function MainPage() {
     run()
   }, [step, file, targetInfo, keywords])
 
-  // derived flags will be used in later phases if needed
-
   const fullTargetInfo = useMemo(() => {
     if (!file || !targetInfo) return null
     return { imageFile: file, ...targetInfo } as TargetInfo
   }, [file, targetInfo])
 
+  const scrollTo = (ref: React.RefObject<HTMLDivElement | null>) => {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  const resetFromUpload = () => {
+    setTargetInfo(null)
+    setLocationInfo(null)
+    setKeywords([])
+    setResults([])
+    setIsGenerating(false)
+    setStep('upload')
+    scrollTo(uploadRef)
+  }
+
+  const resetFromLocation = () => {
+    setLocationInfo(null)
+    setKeywords([])
+    setResults([])
+    setIsGenerating(false)
+    setStep('location')
+    scrollTo(locationRef)
+  }
+
+  const goToLocation = (info: Omit<TargetInfo, 'imageFile'>) => {
+    setTargetInfo(info)
+    setStep('location')
+    setTimeout(() => scrollTo(locationRef), 0)
+  }
+
+  const goToResult = (loc: LocationInfo, kws: string[]) => {
+    setLocationInfo(loc)
+    setKeywords(kws)
+    setStep('result')
+    setTimeout(() => scrollTo(resultRef), 0)
+  }
+
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="mx-auto grid w-full max-w-6xl gap-10 px-6 py-10">
-        {step === 'upload' && (
-          <section className="grid grid-cols-2 gap-8 animate-in fade-in-10">
-            <ImageUploader previewUrl={previewUrl} onFileSelected={setFile as any} />
-            <TargetInfoForm
-              disabled={!file}
-              onFormSubmit={(info) => {
-                setTargetInfo(info)
-                setStep('location')
-              }}
-            />
-          </section>
-        )}
+      <main className="mx-auto grid w-full max-w-6xl gap-14 px-6 py-10">
+        <section ref={uploadRef} className="grid grid-cols-2 gap-8">
+          <ImageUploader previewUrl={previewUrl} onFileSelected={setFile as any} disabled={step !== 'upload'} />
+          <TargetInfoForm disabled={!file || step !== 'upload'} onFormSubmit={goToLocation} />
+          <div className="col-span-2 flex justify-end gap-3">
+            {step !== 'upload' && (
+              <button className="text-sm text-muted-foreground underline" onClick={resetFromUpload}>
+                다시 설정하기 (업로드)
+              </button>
+            )}
+          </div>
+        </section>
 
-        {step === 'location' && (
-          <section className="animate-in fade-in-10">
-            <LocationSelector
-              onLocationSubmit={(loc, kws) => {
-                setLocationInfo(loc)
-                setKeywords(kws)
-                setStep('result')
-              }}
-            />
-          </section>
+        {step !== 'upload' && (
+        <section ref={locationRef} className="">
+          <LocationSelector disabled={step !== 'location'} onLocationSubmit={goToResult} />
+          <div className="mt-2 flex justify-end gap-3">
+            <button className="text-sm text-muted-foreground underline" onClick={resetFromLocation}>
+              다시 설정하기 (지역)
+            </button>
+          </div>
+        </section>
         )}
 
         {step === 'result' && (
-          <section className="animate-in fade-in-10">
-            <ResultView
-              isLoading={isGenerating}
-              targetInfo={fullTargetInfo}
-              locationInfo={locationInfo}
-              results={results}
-            />
-          </section>
+        <section ref={resultRef} className="">
+          <ResultView isLoading={isGenerating} targetInfo={fullTargetInfo} locationInfo={locationInfo} results={results} />
+        </section>
         )}
       </main>
     </div>
