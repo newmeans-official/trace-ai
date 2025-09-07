@@ -36,7 +36,7 @@ export function ResultView({ isLoading, targetInfo, locationInfo, results }: Res
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <Card>
         <CardHeader>
           <CardTitle>원본 이미지</CardTitle>
@@ -57,7 +57,7 @@ export function ResultView({ isLoading, targetInfo, locationInfo, results }: Res
           <div className="text-sm text-muted-foreground">이미지 생성 중...</div>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {results.map((r) => (
           <Card key={r.id} className="relative">
             <CardContent className="space-y-3 p-6">
@@ -85,7 +85,7 @@ export function ResultView({ isLoading, targetInfo, locationInfo, results }: Res
       )}
 
       {expandedId !== null && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-2 gap-8">
           <Card>
             <CardHeader>
               <CardTitle>선택된 결과</CardTitle>

@@ -48,9 +48,9 @@ export function MainPage() {
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="mx-auto grid max-w-6xl gap-8 px-4 py-8">
+      <main className="mx-auto grid w-full max-w-6xl gap-10 px-6 py-10">
         {step === 'upload' && (
-          <section className="grid gap-6 md:grid-cols-2">
+          <section className="grid grid-cols-2 gap-8 animate-in fade-in-10">
             <ImageUploader previewUrl={previewUrl} onFileSelected={setFile as any} />
             <TargetInfoForm
               disabled={!file}
@@ -63,7 +63,7 @@ export function MainPage() {
         )}
 
         {step === 'location' && (
-          <section>
+          <section className="animate-in fade-in-10">
             <LocationSelector
               onLocationSubmit={(loc, kws) => {
                 setLocationInfo(loc)
@@ -75,7 +75,7 @@ export function MainPage() {
         )}
 
         {step === 'result' && (
-          <section>
+          <section className="animate-in fade-in-10">
             <ResultView
               isLoading={isGenerating}
               targetInfo={fullTargetInfo}
