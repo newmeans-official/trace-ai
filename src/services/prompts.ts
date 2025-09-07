@@ -3,7 +3,12 @@ import type { LocationInfo, TargetInfo } from '@/types'
 export function buildBaseImagePrompt(target: Omit<TargetInfo, 'imageFile'>) {
   const gender =
     target.gender === 'unknown' ? 'Unknown' : target.gender === 'male' ? 'Male' : 'Female'
-  const age = typeof target.age === 'number' ? String(target.age) : 'Unknown'
+  const age =
+    typeof target.captureAge === 'number'
+      ? String(target.captureAge)
+      : typeof target.age === 'number'
+        ? String(target.age)
+        : 'Unknown'
   const ethnicity = target.ethnicity || 'Unknown'
   const features = target.features || 'None'
   return `
@@ -16,11 +21,11 @@ Your absolute top priority is to maintain a strong and faithful resemblance to t
 
 **Scene Description & Context:**
 
-The provided image is a police sketch created when the suspect, a [${gender}] of [${ethnicity}] descent, was estimated to be [${age}] years old.
+The provided image is a police sketch created when the suspect, a ${gender} of ${ethnicity} descent, was estimated to be ${age} years old.
 
-Your task is to transform this sketch into a photorealistic portrait, aging the individual to their current estimated age of [${age}] years. You must accurately translate the core facial structure, bone shape, and key features from the sketch while applying natural signs of aging. This includes realistic wrinkles, changes in skin texture and elasticity, and potential hair color changes (e.g., graying) that are appropriate for their current age.
+Your task is to transform this sketch into a photorealistic portrait, aging the individual to their current estimated age of ${age} years. You must accurately translate the core facial structure, bone shape, and key features from the sketch while applying natural signs of aging. This includes realistic wrinkles, changes in skin texture and elasticity, and potential hair color changes (e.g., graying) that are appropriate for their current age.
 
-If available, incorporate these distinguishing features naturally into the portrait: [${features}].
+If available, incorporate these distinguishing features naturally into the portrait: ${features}.
 
 **Photographic Style & Technical Details:**
 

@@ -5,6 +5,7 @@ export interface TargetInfo {
   gender: 'male' | 'female' | 'unknown'
   ethnicity?: string
   features?: string
+  captureAge?: number | 'unknown'
 }
 
 export interface LocationInfo {

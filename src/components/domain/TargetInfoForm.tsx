@@ -39,6 +39,7 @@ export function TargetInfoForm({ disabled, onFormSubmit }: TargetInfoFormProps) 
     const payload: Omit<TargetInfo, 'imageFile'> = {
       shotYear,
       age: computedAge,
+      captureAge: ageUnknown || age === '' ? 'unknown' : Number(age),
       gender,
       ethnicity,
       features,

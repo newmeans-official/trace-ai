@@ -82,7 +82,7 @@ export function ResultView({
                     : 'https://via.placeholder.com/600x400?text=Original'
               }
               alt="원본"
-              className="max-h-full max-w-full object-contain"
+              className="h-full w-full object-contain"
             />
           </div>
           <div className="text-sm text-muted-foreground">Captured Info: {originalInfoText}</div>
@@ -108,7 +108,7 @@ export function ResultView({
                       <img
                         src={r.imageUrl}
                         alt={`결과 ${r.id}`}
-                        className="max-h-full max-w-full object-contain"
+                        className="h-full w-full object-contain"
                       />
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -137,7 +137,7 @@ export function ResultView({
                             <img
                               src={s.imageUrl}
                               alt={s.season}
-                              className="max-h-full max-w-full object-contain"
+                              className="h-full w-full object-contain"
                             />
                           </div>
                         </CardContent>
@@ -155,7 +155,7 @@ export function ResultView({
                       <img
                         src={r.imageUrl}
                         alt={`결과 ${r.id}`}
-                        className="max-h-full max-w-full object-contain"
+                        className="h-full w-full object-contain"
                       />
                     </div>
                     {!expandedIds.has(r.id) && (

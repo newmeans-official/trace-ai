@@ -38,11 +38,7 @@ export function ImageUploader({ previewUrl, onFileSelected, disabled }: ImageUpl
               {...getRootProps()}
             >
               <input {...getInputProps()} />
-              <img
-                src={previewUrl}
-                alt="Upload preview"
-                className="max-h-full max-w-full object-contain"
-              />
+              <img src={previewUrl} alt="Upload preview" className="h-full w-full object-contain" />
             </div>
             <div className="flex">
               <Button type="button" variant="outline" onClick={open} disabled={disabled}>

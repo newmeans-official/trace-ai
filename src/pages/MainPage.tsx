@@ -26,7 +26,12 @@ export function MainPage() {
   const computedAge = useMemo(() => {
     if (!targetInfo || targetInfo.shotYear === 'unknown') return 'Unknown'
     const nowYear = new Date().getFullYear()
-    const captureAge = typeof targetInfo.age === 'number' ? targetInfo.age : 0
+    const captureAge =
+      typeof (targetInfo as any).captureAge === 'number'
+        ? (targetInfo as any).captureAge
+        : typeof targetInfo.age === 'number'
+          ? targetInfo.age
+          : 0
     return Math.max(0, nowYear - Number(targetInfo.shotYear) + captureAge)
   }, [targetInfo])
 
@@ -158,11 +163,7 @@ export function MainPage() {
                       <div className="text-sm text-muted-foreground">Generating base image...</div>
                     </div>
                   ) : baseImageUrl ? (
-                    <img
-                      src={baseImageUrl}
-                      alt="Base"
-                      className="max-h-full max-w-full object-contain"
-                    />
+                    <img src={baseImageUrl} alt="Base" className="h-full w-full object-contain" />
                   ) : (
                     <div className="text-sm text-muted-foreground">No base image</div>
                   )}
