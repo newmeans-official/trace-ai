@@ -1,8 +1,4 @@
 
-@import "tw-animate-css";
-
-@plugin "tailwindcss-animate";
-
 @custom-variant dark (&:is(.dark *));
 
 /* Tailwind CSS directives for Phase 0 */
