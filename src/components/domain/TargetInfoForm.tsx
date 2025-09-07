@@ -24,10 +24,15 @@ export function TargetInfoForm({ disabled, onFormSubmit }: TargetInfoFormProps) 
   const [ageUnknown, setAgeUnknown] = useState(false)
   const [gender, setGender] = useState<'male' | 'female' | 'unknown'>('unknown')
   const [ethnicity, setEthnicity] = useState<string>('Unknown')
+  const [customEthnicity, setCustomEthnicity] = useState<string>('')
   const [features, setFeatures] = useState<string>('')
 
+  const isEthnicityValid = ethnicity !== 'Self-Identification' || customEthnicity.trim() !== ''
   const canProceed =
-    shotYear !== 'unknown' && !!gender && (ageUnknown || (age !== '' && Number(age) >= 0))
+    shotYear !== 'unknown' &&
+    !!gender &&
+    (ageUnknown || (age !== '' && Number(age) >= 0)) &&
+    isEthnicityValid
 
   const handleSubmit = () => {
     if (!canProceed || disabled) return
@@ -41,7 +46,8 @@ export function TargetInfoForm({ disabled, onFormSubmit }: TargetInfoFormProps) 
       age: computedAge,
       captureAge: ageUnknown || age === '' ? 'unknown' : Number(age),
       gender,
-      ethnicity,
+      ethnicity:
+        ethnicity === 'Self-Identification' ? customEthnicity.trim() || 'Unknown' : ethnicity,
       features,
     }
     onFormSubmit(payload)
@@ -92,7 +98,7 @@ export function TargetInfoForm({ disabled, onFormSubmit }: TargetInfoFormProps) 
                 'White',
                 'Hispanic/Latino',
                 'Middle Eastern',
-                'Other',
+                'Self-Identification',
                 'Unknown',
               ].map((e) => (
                 <SelectItem key={e} value={e}>
@@ -101,6 +107,17 @@ export function TargetInfoForm({ disabled, onFormSubmit }: TargetInfoFormProps) 
               ))}
             </SelectContent>
           </Select>
+          {ethnicity === 'Self-Identification' ? (
+            <div className="mt-2">
+              <Input
+                type="text"
+                placeholder="Please self-identify"
+                value={customEthnicity}
+                onChange={(e) => setCustomEthnicity(e.target.value)}
+                disabled={disabled}
+              />
+            </div>
+          ) : null}
         </div>
 
         <div className="grid grid-cols-[1fr_auto] items-end gap-3">
