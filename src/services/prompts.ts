@@ -37,19 +37,92 @@ If available, incorporate these distinguishing features naturally into the portr
 }
 
 export function buildKeywordPrompt(location: LocationInfo, target: Omit<TargetInfo, 'imageFile'>) {
-  return `You are assisting investigators to disguise-trace a suspect.
-Return exactly 5 concise style keywords that are plausible for the region and demographics.
-Respond ONLY with a raw JSON array of strings (no code fences, no explanation).
-Context: country=${location.country}, city=${location.city},
-year=${target.shotYear}, age=${String(target.age)}, gender=${target.gender}.`
-}
+  const gender =
+    target.gender === 'unknown' ? 'Unknown' : target.gender === 'male' ? 'Male' : 'Female'
+  const ageText =
+    typeof target.captureAge === 'number'
+      ? `${target.captureAge} years`
+      : typeof target.age === 'number'
+        ? `${target.age} years`
+        : 'Unknown'
+  const ethnicity = target.ethnicity || 'Unknown'
+  const features = (target.features || 'None').trim() || 'None'
+  const neighborhood = (location as any).neighborhood || 'Not specified'
 
-export function buildImagePrompt(keywords: string[]) {
-  return `Generate a realistic portrait variation guided by these style keywords: ${keywords.join(
-    ', ',
-  )}. Keep identity consistent across results; neutral background; photorealistic.`
+  return `
+**[ROLE & GOAL]**
+
+You are an expert criminal profiler and intelligence analyst. Your mission is to generate a diverse portfolio of approximately 10 highly plausible disguise scenarios for a fugitive. Your analysis must be grounded in established principles of criminal psychology to predict the fugitive's likely behavior under the stress of being on the run. The output must provide actionable intelligence and a clear visual modification profile for an existing photograph.
+
+**[ETHICAL GUIDELINE - CRITICAL]**
+
+Your analysis must be based on verifiable data. AVOID racial or social stereotypes. The objective is to identify roles and environments of high anonymity and low scrutiny for blending in, NOT to associate any group with criminal behavior.
+
+**[CONTEXT]**
+
+- Fugitive Profile:
+    - Country: ${location.country}
+    - City: ${location.city}
+    - Target Neighborhood (Optional): ${neighborhood}
+    - Age: ${ageText}
+    - Gender: ${gender}
+    - Race/Ethnicity: ${ethnicity}
+    - Known Features: ${features}
+
+**[CORE ANALYTICAL FRAMEWORK]**
+
+You must adhere to the following principles for every scenario generated:
+
+- The Unbreakable Rule: Low Barrier to Entry
+    - Permitted: Roles requiring no ID, no background check, no formal qualifications, high turnover, and potential for cash payment. This includes non-occupational roles.
+    - Forbidden: Roles requiring degrees, licenses, official registration, or significant, verifiable trust.
+- Criminal Psychology Principles of Evasion:
+    - Principle of Minimal Social Footprint: Fugitives seek anonymity, preferring roles that require minimal, superficial social interaction.
+    - Principle of Cognitive Comfort: Under stress, fugitives gravitate towards what is familiar, leveraging past skills in a simplified form.
+    - Principle of Paranoid Vigilance: Fugitives prefer environments with blind spots (limited CCTV), multiple escape routes, and a lack of official oversight.
+
+**[PERSONA GENERATION STRATEGY & DISTRIBUTION]**
+
+Generate a portfolio of approximately 10 personas, intelligently distributed across the following categories. Do not exclusively focus on the Known Features.
+
+- A. Feature-Based Personas (Approx. 2): Scenarios that leverage the fugitive's Known Features through the lens of the Principle of Cognitive Comfort.
+- B. Neighborhood-Specific Personas (Approx. 3): Scenarios that leverage the unique micro-culture of a specific district or 'dong' (동네) within the city. This requires a granular analysis of local hangouts, community centers, or specific street-level economies.
+    - Note: If a Target Neighborhood is provided in the context, these personas must be specific to that area. If not, select plausible high-anonymity neighborhoods within the city for your analysis.
+- C. City-Specific Personas (Approx. 2): Scenarios that leverage unique subcultures or informal economies of the target CITY as a whole.
+- D. Country-Specific Personas (Approx. 2): Scenarios characteristic of the COUNTRY's broader culture or informal economy.
+- E. Generic High-Plausibility Personas (Approx. 2): Universal, low-barrier roles applicable to most large cities.
+
+**[OUTPUT GENERATION REQUIREMENTS]**
+
+For each persona, provide the following three outputs:
+
+- keyword (English): A concise, neutral noun phrase.
+- reasoning (English): A rigorous justification. First, explain HOW the persona satisfies the Low Barrier to Entry rule. Second, explicitly state and explain which of the three Criminal Psychology Principles makes this a compelling choice. Reference the specific category (A, B, C, D, or E) it falls under.
+- disguise_prompt (English): A prompt designed to modify an existing front-facing mugshot. It must ONLY describe changeable, external elements visible from the chest-up. DO NOT describe the subject's inherent features (age, race, face) or details below the chest (hands, waist, etc.). Use the new, structured template below.
+    
+    Disguise & Stress Modification Template:
+    
+    Disguise Details: Wearing [Detailed clothing & accessories visible from the chest up], [Hairstyle].
+    Psychological State: [Expression, e.g., tense, paranoid, vacant].
+    Physical Toll of Evasion:
+      - Skin: [sallow, dehydrated, stress acne, deepened fatigue lines, etc.]
+      - Eyes: [guarded, hyper-vigilant look, dark circles, bloodshot, etc.]
+      - Physical Tells: [noticeable weight loss/gain, tense posture of the shoulders, unkempt grooming, etc.]
+    Style: Studio portrait, plain white background.
+
+**[OUTPUT FORMAT]**
+
+Provide your response as a single, valid JSON object only, with no additional text. The JSON object must contain the three primary keys: "Occupation/Status", "Environmental Blending", and "Short-term Labor". The value for each key must be a list (array) of persona objects. Every persona object inside the list must contain exactly three string keys: "keyword", "reasoning", and "disguise_prompt".
+
+Return ONLY this JSON object.
+`
 }
 
 export function buildSeasonPrompt(season: 'Summer' | 'Winter' | 'Spring') {
   return `Generate a fashion/appearance variation for season: ${season}. Same person, photorealistic.`
+}
+
+// Central prompt builder for disguise-based image generation
+export function buildImagePrompt(disguisePrompt: string) {
+  return `draw ${disguisePrompt}`
 }

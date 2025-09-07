@@ -5,7 +5,11 @@ import { TargetInfoForm } from '@/components/domain/TargetInfoForm'
 import { LocationSelector } from '@/components/domain/LocationSelector'
 import { ResultView } from '@/components/domain/ResultView'
 import type { LocationInfo, TargetInfo, ImageResult } from '@/types'
-import { generateImages, generateBaseImage } from '@/services/api'
+import {
+  generateBaseImage,
+  fetchPlannerByLocation,
+  generateImagesFromDisguises,
+} from '@/services/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 
@@ -72,7 +76,19 @@ export function MainPage() {
       setError(null)
       const fullTarget: TargetInfo = { imageFile: file, ...targetInfo }
       try {
-        const imgs = await generateImages(fullTarget, keywords, baseImageUrl || undefined)
+        // Fetch full planner to map keywords -> disguise prompts
+        const { keywordToPrompt } = await fetchPlannerByLocation(
+          { country: locationInfo?.country || '', city: locationInfo?.city || '' },
+          targetInfo,
+        )
+        const items = keywords
+          .map((k) => ({ keyword: k, disguisePrompt: keywordToPrompt[k] }))
+          .filter((it) => it.disguisePrompt)
+        if (!items.length) {
+          throw new Error('No disguise prompts found for generated keywords')
+        }
+        // Use disguise-only prompts: draw {disguise_prompt}
+        const imgs = await generateImagesFromDisguises(fullTarget, items, baseImageUrl || undefined)
         setResults(imgs)
       } catch (e: any) {
         setError(e?.message || 'Failed to generate images')
@@ -82,7 +98,7 @@ export function MainPage() {
       }
     }
     run()
-  }, [step, file, targetInfo, keywords, baseImageUrl])
+  }, [step, file, targetInfo, keywords, baseImageUrl, locationInfo])
 
   const fullTargetInfo = useMemo(() => {
     if (!file || !targetInfo) return null

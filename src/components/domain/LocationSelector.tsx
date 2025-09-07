@@ -89,7 +89,7 @@ export function LocationSelector({
         const loc: LocationInfo = { country, city, neighborhood }
         setLocation(loc)
         if (targetInfo) {
-          const kws = await fetchKeywordsByLocation({ country, city }, targetInfo)
+          const kws = await fetchKeywordsByLocation(loc, targetInfo)
           setKeywords(kws)
         } else {
           setKeywords([])

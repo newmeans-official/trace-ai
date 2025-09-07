@@ -26,3 +26,16 @@ export interface SeasonalResult {
   season: 'Summer' | 'Winter' | 'Spring'
   imageUrl: string
 }
+
+// Planner (keyword persona) output schema
+export type PlannerPersona = {
+  keyword: string
+  reasoning: string
+  disguise_prompt: string
+}
+
+export type PlannerOutput = {
+  'Occupation/Status': PlannerPersona[]
+  'Environmental Blending': PlannerPersona[]
+  'Short-term Labor': PlannerPersona[]
+}
