@@ -18,7 +18,7 @@ export interface ImageResult {
 }
 
 export interface SeasonalResult {
-  season: '여름' | '겨울' | '봄'
+  season: 'Summer' | 'Winter' | 'Spring'
   imageUrl: string
 }
 

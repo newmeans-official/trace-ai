@@ -27,9 +27,9 @@ export const fetchSeasonalImages = async (resultId: number): Promise<SeasonalRes
   console.log('Fetching seasonal images for result:', resultId)
   await sleep(3000)
   return [
-    { season: '여름', imageUrl: 'https://via.placeholder.com/400?text=Summer' },
-    { season: '겨울', imageUrl: 'https://via.placeholder.com/400?text=Winter' },
-    { season: '봄', imageUrl: 'https://via.placeholder.com/400?text=Spring' },
+    { season: 'Summer', imageUrl: 'https://via.placeholder.com/400?text=Summer' },
+    { season: 'Winter', imageUrl: 'https://via.placeholder.com/400?text=Winter' },
+    { season: 'Spring', imageUrl: 'https://via.placeholder.com/400?text=Spring' },
   ]
 }
 

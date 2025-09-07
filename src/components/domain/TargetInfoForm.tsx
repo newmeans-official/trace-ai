@@ -35,18 +35,18 @@ export function TargetInfoForm({ disabled, onFormSubmit }: TargetInfoFormProps) 
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>촬영 정보</CardTitle>
+        <CardTitle>Capture Information</CardTitle>
       </CardHeader>
       <CardContent className={`space-y-6 ${disabled ? 'pointer-events-none opacity-60' : ''}`} aria-disabled={disabled}>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="mb-2 block text-sm font-medium">촬영 연도</label>
+            <label className="mb-2 block text-sm font-medium">Capture Year</label>
             <Select value={shotYear} onValueChange={setShotYear} disabled={disabled}>
               <SelectTrigger disabled={disabled}>
-                <SelectValue placeholder="연도 선택" />
+                <SelectValue placeholder="Select year" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="unknown">모름</SelectItem>
+                <SelectItem value="unknown">Unknown</SelectItem>
                 <SelectItem value="2025">2025</SelectItem>
                 <SelectItem value="2024">2024</SelectItem>
                 <SelectItem value="2023">2023</SelectItem>
@@ -56,13 +56,13 @@ export function TargetInfoForm({ disabled, onFormSubmit }: TargetInfoFormProps) 
             </Select>
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium">촬영 월</label>
+            <label className="mb-2 block text-sm font-medium">Capture Month</label>
             <Select value={shotMonth} onValueChange={setShotMonth} disabled={disabled}>
               <SelectTrigger disabled={disabled}>
-                <SelectValue placeholder="월 선택" />
+                <SelectValue placeholder="Select month" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="unknown">모름</SelectItem>
+                <SelectItem value="unknown">Unknown</SelectItem>
                 <SelectItem value="1">1</SelectItem>
                 <SelectItem value="2">2</SelectItem>
                 <SelectItem value="3">3</SelectItem>
@@ -82,11 +82,11 @@ export function TargetInfoForm({ disabled, onFormSubmit }: TargetInfoFormProps) 
 
         <div className="grid grid-cols-[1fr_auto] items-end gap-3">
           <div>
-            <label className="mb-2 block text-sm font-medium">촬영 당시 나이</label>
+            <label className="mb-2 block text-sm font-medium">Age at Capture</label>
             <Input
               type="number"
               min={0}
-              placeholder="나이 입력"
+              placeholder="Enter age"
               value={age}
               onChange={(e) => setAge(e.target.value)}
               disabled={ageUnknown || !!disabled}
@@ -95,30 +95,30 @@ export function TargetInfoForm({ disabled, onFormSubmit }: TargetInfoFormProps) 
           <div className="mb-2 flex items-center gap-2">
             <Checkbox id="age-unknown" checked={ageUnknown} onCheckedChange={(v) => setAgeUnknown(Boolean(v))} disabled={disabled} />
             <label htmlFor="age-unknown" className="text-sm">
-              모름
+              Unknown
             </label>
           </div>
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium">성별</label>
+          <label className="mb-2 block text-sm font-medium">Gender</label>
           <RadioGroup className="flex gap-6" value={gender} onValueChange={(v) => setGender(v as any)} disabled={disabled}>
             <div className="flex items-center gap-2">
               <RadioGroupItem value="male" id="gender-male" />
               <label htmlFor="gender-male" className="text-sm">
-                남성
+                Male
               </label>
             </div>
             <div className="flex items-center gap-2">
               <RadioGroupItem value="female" id="gender-female" />
               <label htmlFor="gender-female" className="text-sm">
-                여성
+                Female
               </label>
             </div>
             <div className="flex items-center gap-2">
               <RadioGroupItem value="unknown" id="gender-unknown" />
               <label htmlFor="gender-unknown" className="text-sm">
-                모름
+                Unknown
               </label>
             </div>
           </RadioGroup>
@@ -126,7 +126,7 @@ export function TargetInfoForm({ disabled, onFormSubmit }: TargetInfoFormProps) 
 
         <div className="pt-2">
           <Button type="button" disabled={!canProceed || disabled} onClick={handleSubmit} className="w-full">
-            이어서 진행
+            Continue
           </Button>
         </div>
       </CardContent>

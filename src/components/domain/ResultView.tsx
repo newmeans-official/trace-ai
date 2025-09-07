@@ -14,32 +14,45 @@ type ResultViewProps = {
 }
 
 export function ResultView({ isLoading, targetInfo, locationInfo, results }: ResultViewProps) {
-  const [expandedId, setExpandedId] = useState<number | null>(null)
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
   const [seasonals, setSeasonals] = useState<Record<number, SeasonalResult[] | undefined>>({})
-  const [seasonalLoading, setSeasonalLoading] = useState(false)
+  const [loadingIds, setLoadingIds] = useState<Set<number>>(new Set())
 
   const originalInfoText = useMemo(() => {
     if (!targetInfo || !locationInfo) return '정보 없음'
-    const year = targetInfo.shotYear === 'unknown' ? '연도 모름' : `${targetInfo.shotYear}년`
-    const month = targetInfo.shotMonth === 'unknown' ? '월 모름' : `${targetInfo.shotMonth}월`
-    const ageText = targetInfo.age === 'unknown' ? '나이 모름' : `${targetInfo.age}세`
-    const genderMap: Record<TargetInfo['gender'], string> = { male: '남성', female: '여성', unknown: '모름' }
+    const year = targetInfo.shotYear === 'unknown' ? 'Year unknown' : `${targetInfo.shotYear}`
+    const month = targetInfo.shotMonth === 'unknown' ? 'Month unknown' : `${targetInfo.shotMonth}`
+    const ageText = targetInfo.age === 'unknown' ? 'Age unknown' : `${targetInfo.age} yrs`
+    const genderMap: Record<TargetInfo['gender'], string> = { male: 'Male', female: 'Female', unknown: 'Unknown' }
     return `${year} ${month} · ${ageText} · ${genderMap[targetInfo.gender]} · ${locationInfo.city}`
   }, [targetInfo, locationInfo])
 
   const handleExpand = async (id: number) => {
-    setExpandedId(id)
-    setSeasonalLoading(true)
+    if (expandedIds.has(id)) return
+    setExpandedIds((prev) => {
+      const next = new Set(prev)
+      next.add(id)
+      return next
+    })
+    setLoadingIds((prev) => {
+      const next = new Set(prev)
+      next.add(id)
+      return next
+    })
     const imgs = await fetchSeasonalImages(id)
     setSeasonals((prev) => ({ ...prev, [id]: imgs }))
-    setSeasonalLoading(false)
+    setLoadingIds((prev) => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
   }
 
   return (
     <div className="space-y-8">
       <Card>
         <CardHeader>
-          <CardTitle>원본 이미지</CardTitle>
+          <CardTitle>Original Image</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="relative flex h-[360px] w-full items-center justify-center overflow-hidden rounded-md border bg-muted/20">
@@ -49,23 +62,23 @@ export function ResultView({ isLoading, targetInfo, locationInfo, results }: Res
               className="max-h-full max-w-full object-contain"
             />
           </div>
-          <div className="text-sm text-muted-foreground">촬영 정보: {originalInfoText}</div>
+          <div className="text-sm text-muted-foreground">Captured Info: {originalInfoText}</div>
         </CardContent>
       </Card>
 
       {isLoading ? (
         <div className="space-y-2">
           <Progress value={60} />
-          <div className="text-sm text-muted-foreground">이미지 생성 중...</div>
+          <div className="text-sm text-muted-foreground">Generating images...</div>
         </div>
       ) : (
         <div className="space-y-8">
           {results.map((r) => (
-            expandedId === r.id ? (
+            expandedIds.has(r.id) ? (
               <div key={r.id} className="grid grid-cols-2 gap-8">
                 <Card>
                   <CardHeader>
-                    <CardTitle>선택된 결과</CardTitle>
+                    <CardTitle>Selected Result</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="relative flex h-[360px] w-full items-center justify-center overflow-hidden rounded-md border bg-muted/20">
@@ -83,13 +96,13 @@ export function ResultView({ isLoading, targetInfo, locationInfo, results }: Res
                   </CardContent>
                 </Card>
                 <div className="space-y-4">
-                  {seasonalLoading ? (
+                  {loadingIds.has(r.id) ? (
                     <div className="space-y-2">
                       <Progress value={60} />
-                      <div className="text-sm text-muted-foreground">계절 이미지 불러오는 중...</div>
+                      <div className="text-sm text-muted-foreground">Loading seasonal images...</div>
                     </div>
                   ) : (
-                    (seasonals[expandedId] || []).map((s) => (
+                    (seasonals[r.id] || []).map((s) => (
                       <Card key={s.season}>
                         <CardHeader>
                           <CardTitle>{s.season}</CardTitle>
@@ -119,11 +132,13 @@ export function ResultView({ isLoading, targetInfo, locationInfo, results }: Res
                         className="max-h-full max-w-full object-contain"
                       />
                     </div>
-                    <div className="absolute right-3 top-3">
-                      <Button size="sm" variant="secondary" onClick={() => handleExpand(r.id)}>
-                        계절별 보기
-                      </Button>
-                    </div>
+                    {!expandedIds.has(r.id) && (
+                      <div className="absolute right-3 top-3">
+                        <Button size="sm" variant="secondary" onClick={() => handleExpand(r.id)}>
+                          계절별 보기
+                        </Button>
+                      </div>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {r.keywords.map((k) => (

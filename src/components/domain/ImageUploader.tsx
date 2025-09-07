@@ -40,13 +40,13 @@ export function ImageUploader({ previewUrl, onFileSelected, disabled }: ImageUpl
               <input {...getInputProps()} />
               <img
                 src={previewUrl}
-                alt="업로드 미리보기"
+                alt="Upload preview"
                 className="max-h-full max-w-full object-contain"
               />
             </div>
             <div className="flex">
               <Button type="button" variant="outline" onClick={open} disabled={disabled}>
-                변경
+                Change
               </Button>
             </div>
           </div>
@@ -57,9 +57,9 @@ export function ImageUploader({ previewUrl, onFileSelected, disabled }: ImageUpl
           >
             <input {...getInputProps()} />
             <div className="text-sm text-muted-foreground">
-              여기에 타겟 인물의 몽타주 또는 사진 파일을 드래그하거나, 파일을 선택하세요.
+              Drag and drop a composite sketch or photo here, or choose a file.
             </div>
-            <Button type="button" onClick={open} disabled={disabled}>파일 선택</Button>
+            <Button type="button" onClick={open} disabled={disabled}>Choose File</Button>
           </div>
         )}
       </CardContent>

@@ -94,7 +94,7 @@ export function MainPage() {
           <div className="col-span-2 flex justify-end gap-3">
             {step !== 'upload' && (
               <button className="text-sm text-muted-foreground underline" onClick={resetFromUpload}>
-                다시 설정하기 (업로드)
+                Reset (Upload)
               </button>
             )}
           </div>
@@ -105,7 +105,7 @@ export function MainPage() {
           <LocationSelector disabled={step !== 'location'} onLocationSubmit={goToResult} />
           <div className="mt-2 flex justify-end gap-3">
             <button className="text-sm text-muted-foreground underline" onClick={resetFromLocation}>
-              다시 설정하기 (지역)
+              Reset (Location)
             </button>
           </div>
         </section>
