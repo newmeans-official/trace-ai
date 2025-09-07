@@ -23,6 +23,8 @@ export function MainPage() {
   const [error, setError] = useState<string | null>(null)
   const [baseImageUrl, setBaseImageUrl] = useState<string | null>(null)
   const [isBaseGenerating, setIsBaseGenerating] = useState(false)
+  const [baseProg, setBaseProg] = useState(0)
+  const [baseStart, setBaseStart] = useState<number | null>(null)
   const [plannerData, setPlannerData] = useState<{
     planner: PlannerOutput
     keywordToPrompt: Record<string, string>
@@ -86,6 +88,7 @@ export function MainPage() {
     if (step !== 'location' || !file || !targetInfo || baseImageUrl) return
     const run = async () => {
       setIsBaseGenerating(true)
+      setBaseStart(Date.now())
       setError(null)
       const fullTarget: TargetInfo = { imageFile: file, ...targetInfo }
       try {
@@ -99,6 +102,26 @@ export function MainPage() {
     }
     run()
   }, [step, file, targetInfo, baseImageUrl])
+
+  // Animate base image generation progress (dummy time-based)
+  useEffect(() => {
+    if (isBaseGenerating) {
+      const interval = window.setInterval(() => {
+        const start = baseStart || Date.now()
+        const elapsed = Date.now() - start
+        const pct = Math.min(95, Math.round((elapsed / 60000) * 95))
+        setBaseProg(Math.max(5, pct))
+      }, 200)
+      return () => window.clearInterval(interval)
+    } else if (baseStart) {
+      setBaseProg(100)
+      const timeout = window.setTimeout(() => {
+        setBaseStart(null)
+        setBaseProg(0)
+      }, 800)
+      return () => window.clearTimeout(timeout)
+    }
+  }, [isBaseGenerating, baseStart])
 
   useEffect(() => {
     if (step !== 'result' || !file || !targetInfo || !keywords.length) return
@@ -261,7 +284,7 @@ export function MainPage() {
                 <div className="relative flex h-[360px] w-full items-center justify-center overflow-hidden rounded-md border bg-muted/20">
                   {isBaseGenerating ? (
                     <div className="w-full space-y-2 p-6">
-                      <Progress value={60} />
+                      <Progress value={baseProg} />
                       <div className="text-sm text-muted-foreground">Generating base image...</div>
                     </div>
                   ) : baseImageUrl ? (

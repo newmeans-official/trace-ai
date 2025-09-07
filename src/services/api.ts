@@ -232,6 +232,7 @@ export const generateBaseImage = async (targetInfo: TargetInfo): Promise<string>
   const prompt = buildBaseImagePrompt({
     shotYear: targetInfo.shotYear,
     age: targetInfo.age,
+    captureAge: targetInfo.captureAge,
     gender: targetInfo.gender,
     ethnicity: targetInfo.ethnicity,
     features: targetInfo.features,

@@ -66,6 +66,10 @@ export function LocationSelector({
   const [keywords, setKeywords] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [mapStart, setMapStart] = useState<number | null>(null)
+  const [mapProg, setMapProg] = useState<number>(0)
+  const [keywordStart, setKeywordStart] = useState<number | null>(null)
+  const [keywordProg, setKeywordProg] = useState<number>(0)
 
   useEffect(() => {
     if (!isLoaded || geocoderRef.current) return
@@ -77,6 +81,47 @@ export function LocationSelector({
       mapRef.current.panTo(position)
     }
   }, [position, isLoaded])
+
+  // Animate map load progress while isLoaded is false
+  useEffect(() => {
+    if (!isLoaded) {
+      setMapStart((prev) => prev || Date.now())
+      const interval = window.setInterval(() => {
+        const start = mapStart || Date.now()
+        const elapsed = Date.now() - start
+        const pct = Math.min(95, Math.round((elapsed / 60000) * 95))
+        setMapProg(Math.max(5, pct))
+      }, 200)
+      return () => window.clearInterval(interval)
+    } else if (mapStart) {
+      setMapProg(100)
+      const timeout = window.setTimeout(() => {
+        setMapStart(null)
+        setMapProg(0)
+      }, 800)
+      return () => window.clearTimeout(timeout)
+    }
+  }, [isLoaded, mapStart])
+
+  // Animate keyword fetching progress while isLoading is true
+  useEffect(() => {
+    if (isLoading) {
+      const interval = window.setInterval(() => {
+        const start = keywordStart || Date.now()
+        const elapsed = Date.now() - start
+        const pct = Math.min(95, Math.round((elapsed / 60000) * 95))
+        setKeywordProg(Math.max(5, pct))
+      }, 200)
+      return () => window.clearInterval(interval)
+    } else if (keywordStart) {
+      setKeywordProg(100)
+      const timeout = window.setTimeout(() => {
+        setKeywordStart(null)
+        setKeywordProg(0)
+      }, 800)
+      return () => window.clearTimeout(timeout)
+    }
+  }, [isLoading, keywordStart])
 
   const reverseGeocode = useCallback(
     async (latLng: LatLngLiteral) => {
@@ -139,7 +184,7 @@ export function LocationSelector({
           <div className="text-sm text-red-500">Missing or invalid Google Maps API key</div>
         ) : !isLoaded ? (
           <div className="space-y-2">
-            <Progress value={60} />
+            <Progress value={mapProg} />
             <div className="text-sm text-muted-foreground">Loading map...</div>
           </div>
         ) : (
@@ -186,7 +231,7 @@ export function LocationSelector({
           </div>
           {isLoading ? (
             <div className="space-y-2">
-              <Progress value={60} />
+              <Progress value={keywordProg} />
               <div className="text-sm text-muted-foreground">Loading keywords...</div>
             </div>
           ) : (
@@ -210,6 +255,7 @@ export function LocationSelector({
                 return
               }
               setIsLoading(true)
+              setKeywordStart(Date.now())
               setError(null)
               try {
                 const {

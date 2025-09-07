@@ -53,7 +53,7 @@ export function ImageUploader({ previewUrl, onFileSelected, disabled }: ImageUpl
           >
             <input {...getInputProps()} />
             <div className="text-sm text-muted-foreground">
-              Drag and drop a composite sketch or photo here, or choose a file.
+              Drag and drop a composite sketch or photo here.
             </div>
             <Button type="button" onClick={open} disabled={disabled}>
               Choose File

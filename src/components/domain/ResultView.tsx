@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, PersonaCard } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -29,6 +29,9 @@ export function ResultView({
   const [seasonals, setSeasonals] = useState<Record<number, SeasonalResult[] | undefined>>({})
   const [loadingIds, setLoadingIds] = useState<Set<number>>(new Set())
   const [errors, setErrors] = useState<Record<number, string | undefined>>({})
+  const [mainProgress, setMainProgress] = useState<number>(0)
+  const [showMainProgress, setShowMainProgress] = useState<boolean>(false)
+  const [seasonalStart, setSeasonalStart] = useState<Record<number, number>>({})
 
   const originalInfoText = useMemo(() => {
     if (!targetInfo || !locationInfo) return '정보 없음'
@@ -54,6 +57,7 @@ export function ResultView({
       next.add(id)
       return next
     })
+    setSeasonalStart((prev) => ({ ...prev, [id]: Date.now() }))
     try {
       const base = results.find((r) => r.id === id)?.imageUrl
       const imgs = await fetchSeasonalImages(id, base)
@@ -68,6 +72,25 @@ export function ResultView({
       return next
     })
   }
+
+  // Main progress: animate up to 95% over 60s while loading; on completion show 100% briefly
+  useEffect(() => {
+    if (isLoading) {
+      setShowMainProgress(true)
+      setMainProgress(0)
+      const start = Date.now()
+      const interval = window.setInterval(() => {
+        const elapsed = Date.now() - start
+        const pct = Math.min(95, Math.round((elapsed / 60000) * 95))
+        setMainProgress(pct)
+      }, 200)
+      return () => window.clearInterval(interval)
+    } else if (showMainProgress) {
+      setMainProgress(100)
+      const timeout = window.setTimeout(() => setShowMainProgress(false), 800)
+      return () => window.clearTimeout(timeout)
+    }
+  }, [isLoading])
 
   const getPrimaryInfo = (
     res: ImageResult,
@@ -111,10 +134,12 @@ export function ResultView({
         </CardContent>
       </Card>
 
-      {isLoading ? (
+      {showMainProgress ? (
         <div className="space-y-2">
-          <Progress value={60} />
-          <div className="text-sm text-muted-foreground">Generating images...</div>
+          <Progress value={mainProgress} />
+          <div className="text-sm text-muted-foreground">
+            {isLoading ? 'Generating images...' : 'Finalizing...'}
+          </div>
         </div>
       ) : (
         <div className="space-y-8">
@@ -143,7 +168,17 @@ export function ResultView({
                 <div className="space-y-4">
                   {loadingIds.has(r.id) ? (
                     <div className="space-y-2">
-                      <Progress value={60} />
+                      <Progress
+                        value={Math.max(
+                          5,
+                          Math.min(
+                            95,
+                            Math.round(
+                              ((Date.now() - (seasonalStart[r.id] || Date.now())) / 60000) * 95,
+                            ),
+                          ),
+                        )}
+                      />
                       <div className="text-sm text-muted-foreground">
                         Loading seasonal images...
                       </div>
@@ -187,19 +222,6 @@ export function ResultView({
                     />
                   )
                 })()}
-                {!expandedIds.has(r.id) && (
-                  <div className="absolute right-3 top-3">
-                    <Button size="sm" variant="secondary" onClick={() => handleExpand(r.id)}>
-                      계절별 보기
-                    </Button>
-                  </div>
-                )}
-                {/* Keep badges below for supplementary context; matches reference emphasis on title/body */}
-                <div className="flex flex-wrap gap-2">
-                  {r.keywords.map((k) => (
-                    <Badge key={k}>{k}</Badge>
-                  ))}
-                </div>
               </div>
             ),
           )}
