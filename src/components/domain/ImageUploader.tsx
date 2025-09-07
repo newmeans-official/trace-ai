@@ -34,7 +34,7 @@ export function ImageUploader({ previewUrl, onFileSelected, disabled }: ImageUpl
         {previewUrl ? (
           <div className="space-y-4" aria-disabled={disabled}>
             <div
-              className={`relative flex h-[360px] w-full items-center justify-center overflow-hidden rounded-md border bg-muted/20 ${disabled ? 'pointer-events-none opacity-60' : 'cursor-pointer'}`}
+              className={`relative flex h-[420px] w-full items-center justify-center overflow-hidden rounded-md border bg-muted/20 ${disabled ? 'pointer-events-none opacity-60' : 'cursor-pointer'}`}
               {...getRootProps()}
             >
               <input {...getInputProps()} />

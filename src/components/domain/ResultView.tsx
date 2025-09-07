@@ -11,9 +11,16 @@ type ResultViewProps = {
   targetInfo: TargetInfo | null
   locationInfo: LocationInfo | null
   results: ImageResult[]
+  baseImageUrl?: string | null
 }
 
-export function ResultView({ isLoading, targetInfo, locationInfo, results }: ResultViewProps) {
+export function ResultView({
+  isLoading,
+  targetInfo,
+  locationInfo,
+  results,
+  baseImageUrl,
+}: ResultViewProps) {
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
   const [seasonals, setSeasonals] = useState<Record<number, SeasonalResult[] | undefined>>({})
   const [loadingIds, setLoadingIds] = useState<Set<number>>(new Set())
@@ -22,14 +29,13 @@ export function ResultView({ isLoading, targetInfo, locationInfo, results }: Res
   const originalInfoText = useMemo(() => {
     if (!targetInfo || !locationInfo) return '정보 없음'
     const year = targetInfo.shotYear === 'unknown' ? 'Year unknown' : `${targetInfo.shotYear}`
-    const month = targetInfo.shotMonth === 'unknown' ? 'Month unknown' : `${targetInfo.shotMonth}`
     const ageText = targetInfo.age === 'unknown' ? 'Age unknown' : `${targetInfo.age} yrs`
     const genderMap: Record<TargetInfo['gender'], string> = {
       male: 'Male',
       female: 'Female',
       unknown: 'Unknown',
     }
-    return `${year} ${month} · ${ageText} · ${genderMap[targetInfo.gender]} · ${locationInfo.city}`
+    return `${year} · ${ageText} · ${genderMap[targetInfo.gender]} · ${locationInfo.city}`
   }, [targetInfo, locationInfo])
 
   const handleExpand = async (id: number) => {
@@ -69,9 +75,11 @@ export function ResultView({ isLoading, targetInfo, locationInfo, results }: Res
           <div className="relative flex h-[360px] w-full items-center justify-center overflow-hidden rounded-md border bg-muted/20">
             <img
               src={
-                targetInfo
-                  ? URL.createObjectURL(targetInfo.imageFile)
-                  : 'https://via.placeholder.com/600x400?text=Original'
+                baseImageUrl
+                  ? baseImageUrl
+                  : targetInfo
+                    ? URL.createObjectURL(targetInfo.imageFile)
+                    : 'https://via.placeholder.com/600x400?text=Original'
               }
               alt="원본"
               className="max-h-full max-w-full object-contain"

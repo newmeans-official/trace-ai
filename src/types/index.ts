@@ -1,7 +1,6 @@
 export interface TargetInfo {
   imageFile: File
   shotYear: string | 'unknown'
-  shotMonth: string | 'unknown'
   age: number | 'unknown'
   gender: 'male' | 'female' | 'unknown'
   ethnicity?: string

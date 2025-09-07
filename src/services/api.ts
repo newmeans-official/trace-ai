@@ -17,6 +17,7 @@ export const fetchKeywordsByLocation = async (
   if (!target) throw new Error('Target info is required for keyword generation')
   const ai = requireClient()
   const prompt = buildKeywordPrompt(location, target)
+  console.log('[PROMPT:keywords]', prompt)
   const res = await ai.models.generateContent({
     model: 'gemini-2.5-flash',
     contents: prompt,
@@ -70,12 +71,27 @@ export const fetchKeywordsByLocation = async (
 export const generateImages = async (
   targetInfo: TargetInfo,
   keywords: string[],
+  baseImageDataUrl?: string,
 ): Promise<ImageResult[]> => {
   const ai = requireClient()
 
-  const imageBase64 = await fileToBase64(targetInfo.imageFile)
-  const mimeType = targetInfo.imageFile.type || 'image/jpeg'
+  let imageBase64: string
+  let mimeType: string
+  if (baseImageDataUrl) {
+    const parsed = parseDataUrl(baseImageDataUrl)
+    if (parsed) {
+      imageBase64 = parsed.base64
+      mimeType = parsed.mimeType
+    } else {
+      imageBase64 = await fileToBase64(targetInfo.imageFile)
+      mimeType = targetInfo.imageFile.type || 'image/jpeg'
+    }
+  } else {
+    imageBase64 = await fileToBase64(targetInfo.imageFile)
+    mimeType = targetInfo.imageFile.type || 'image/jpeg'
+  }
   const prompt = buildImagePrompt(keywords)
+  console.log('[PROMPT:generateImages]', prompt)
 
   const res = await ai.models.generateContent({
     model: 'gemini-2.5-flash-image-preview',
@@ -102,12 +118,12 @@ export const generateBaseImage = async (targetInfo: TargetInfo): Promise<string>
   const mimeType = targetInfo.imageFile.type || 'image/jpeg'
   const prompt = buildBaseImagePrompt({
     shotYear: targetInfo.shotYear,
-    shotMonth: targetInfo.shotMonth,
     age: targetInfo.age,
     gender: targetInfo.gender,
     ethnicity: targetInfo.ethnicity,
     features: targetInfo.features,
-  })
+  } as any)
+  console.log('[PROMPT:baseImage]', prompt)
   const res = await ai.models.generateContent({
     model: 'gemini-2.5-flash-image-preview',
     contents: [{ inlineData: { data: imageBase64, mimeType } } as any, { text: prompt } as any],
@@ -121,7 +137,7 @@ export const generateBaseImage = async (targetInfo: TargetInfo): Promise<string>
 }
 
 export const fetchSeasonalImages = async (
-  resultId: number,
+  _resultId: number,
   baseImageDataUrl?: string,
 ): Promise<SeasonalResult[]> => {
   const ai = requireClient()
@@ -130,6 +146,7 @@ export const fetchSeasonalImages = async (
   for (let i = 0; i < seasons.length; i++) {
     const s = seasons[i]
     const prompt = buildSeasonPrompt(s)
+    console.log('[PROMPT:season]', prompt)
     const contentParts: any[] = []
     if (baseImageDataUrl) {
       const parsed = parseDataUrl(baseImageDataUrl)

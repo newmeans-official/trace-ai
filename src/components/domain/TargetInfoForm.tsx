@@ -20,21 +20,28 @@ type TargetInfoFormProps = {
 
 export function TargetInfoForm({ disabled, onFormSubmit }: TargetInfoFormProps) {
   const [shotYear, setShotYear] = useState<string | 'unknown'>('unknown')
-  const [shotMonth, setShotMonth] = useState<string | 'unknown'>('unknown')
-  const [ageUnknown, setAgeUnknown] = useState(false)
   const [age, setAge] = useState<string>('')
+  const [ageUnknown, setAgeUnknown] = useState(false)
   const [gender, setGender] = useState<'male' | 'female' | 'unknown'>('unknown')
+  const [ethnicity, setEthnicity] = useState<string>('Unknown')
+  const [features, setFeatures] = useState<string>('')
 
   const canProceed =
-    (ageUnknown || (!!age && Number(age) >= 0)) && !!shotYear && !!shotMonth && !!gender
+    shotYear !== 'unknown' && !!gender && (ageUnknown || (age !== '' && Number(age) >= 0))
 
   const handleSubmit = () => {
     if (!canProceed || disabled) return
+    const nowYear = new Date().getFullYear()
+    const computedAge =
+      shotYear === 'unknown' || ageUnknown || age === ''
+        ? 'unknown'
+        : Math.max(0, nowYear - Number(shotYear) + Number(age))
     const payload: Omit<TargetInfo, 'imageFile'> = {
       shotYear,
-      shotMonth,
-      age: ageUnknown ? 'unknown' : Number(age),
+      age: computedAge,
       gender,
+      ethnicity,
+      features,
     }
     onFormSubmit(payload)
   }
@@ -52,42 +59,47 @@ export function TargetInfoForm({ disabled, onFormSubmit }: TargetInfoFormProps) 
           <div>
             <label className="mb-2 block text-sm font-medium">Capture Year</label>
             <Select value={shotYear} onValueChange={setShotYear} disabled={disabled}>
-              <SelectTrigger disabled={disabled}>
+              <SelectTrigger disabled={disabled} className="max-h-10">
                 <SelectValue placeholder="Select year" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-60 overflow-y-auto">
                 <SelectItem value="unknown">Unknown</SelectItem>
-                <SelectItem value="2025">2025</SelectItem>
-                <SelectItem value="2024">2024</SelectItem>
-                <SelectItem value="2023">2023</SelectItem>
-                <SelectItem value="2022">2022</SelectItem>
-                <SelectItem value="2021">2021</SelectItem>
+                {Array.from({ length: 2025 - 1950 + 1 }, (_, i) => 1950 + i)
+                  .reverse()
+                  .map((y) => (
+                    <SelectItem key={y} value={String(y)}>
+                      {y}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium">Capture Month</label>
-            <Select value={shotMonth} onValueChange={setShotMonth} disabled={disabled}>
-              <SelectTrigger disabled={disabled}>
-                <SelectValue placeholder="Select month" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unknown">Unknown</SelectItem>
-                <SelectItem value="1">1</SelectItem>
-                <SelectItem value="2">2</SelectItem>
-                <SelectItem value="3">3</SelectItem>
-                <SelectItem value="4">4</SelectItem>
-                <SelectItem value="5">5</SelectItem>
-                <SelectItem value="6">6</SelectItem>
-                <SelectItem value="7">7</SelectItem>
-                <SelectItem value="8">8</SelectItem>
-                <SelectItem value="9">9</SelectItem>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="11">11</SelectItem>
-                <SelectItem value="12">12</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-medium">Ethnicity</label>
+          <Select value={ethnicity} onValueChange={setEthnicity} disabled={disabled}>
+            <SelectTrigger disabled={disabled}>
+              <SelectValue placeholder="Select ethnicity" />
+            </SelectTrigger>
+            <SelectContent>
+              {[
+                'East Asian',
+                'Southeast Asian',
+                'South Asian',
+                'Black',
+                'White',
+                'Hispanic/Latino',
+                'Middle Eastern',
+                'Other',
+                'Unknown',
+              ].map((e) => (
+                <SelectItem key={e} value={e}>
+                  {e}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="grid grid-cols-[1fr_auto] items-end gap-3">
@@ -96,7 +108,7 @@ export function TargetInfoForm({ disabled, onFormSubmit }: TargetInfoFormProps) 
             <Input
               type="number"
               min={0}
-              placeholder="Enter age"
+              placeholder="Enter age at capture"
               value={age}
               onChange={(e) => setAge(e.target.value)}
               disabled={ageUnknown || !!disabled}
@@ -113,6 +125,19 @@ export function TargetInfoForm({ disabled, onFormSubmit }: TargetInfoFormProps) 
               Unknown
             </label>
           </div>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-medium">
+            Distinctive Features (comma separated)
+          </label>
+          <Input
+            type="text"
+            placeholder="e.g., scar under left eye, mole on chin"
+            value={features}
+            onChange={(e) => setFeatures(e.target.value)}
+            disabled={disabled}
+          />
         </div>
 
         <div>

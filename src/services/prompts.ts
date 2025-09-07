@@ -28,8 +28,7 @@ If available, incorporate these distinguishing features naturally into the portr
 *   **Camera & Angle:** The perspective must be a direct, front-facing shot of the head and shoulders. Use a standard portrait lens setting to ensure the facial features are not distorted.
 *   **Lighting:** Employ neutral, even studio lighting that clearly illuminates the face and minimizes harsh shadows, ensuring all details are visible.
 *   **Details:** Render realistic skin texture, including pores and fine lines. The eyes should appear lifelike and clear.
-*   **Background:** The background should be simple and out of focus, using a neutral color like light gray or blue, to keep the entire focus on the suspect's face.
-  `
+*   **Background:** The background should be simple and out of focus, using a neutral color like light gray or blue, to keep the entire focus on the suspect's face.`
 }
 
 export function buildKeywordPrompt(location: LocationInfo, target: Omit<TargetInfo, 'imageFile'>) {
@@ -37,7 +36,7 @@ export function buildKeywordPrompt(location: LocationInfo, target: Omit<TargetIn
 Return exactly 5 concise style keywords that are plausible for the region and demographics.
 Respond ONLY with a raw JSON array of strings (no code fences, no explanation).
 Context: country=${location.country}, city=${location.city},
-year=${target.shotYear}, month=${target.shotMonth}, age=${String(target.age)}, gender=${target.gender}.`
+year=${target.shotYear}, age=${String(target.age)}, gender=${target.gender}.`
 }
 
 export function buildImagePrompt(keywords: string[]) {
