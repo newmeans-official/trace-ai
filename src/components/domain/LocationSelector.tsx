@@ -1,9 +1,56 @@
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
+import { fetchKeywordsByLocation } from '@/services/api'
+import type { LocationInfo } from '@/types'
 
-export function LocationSelector() {
+type LocationSelectorProps = {
+  onLocationSubmit: (location: LocationInfo, keywords: string[]) => void
+}
+
+const countryToCities: Record<string, { label: string; value: string }[]> = {
+  kr: [
+    { label: '서울', value: 'seoul' },
+    { label: '부산', value: 'busan' },
+    { label: '인천', value: 'incheon' },
+  ],
+  us: [
+    { label: '뉴욕', value: 'newyork' },
+    { label: 'LA', value: 'la' },
+    { label: '시카고', value: 'chicago' },
+  ],
+  jp: [
+    { label: '도쿄', value: 'tokyo' },
+    { label: '오사카', value: 'osaka' },
+    { label: '교토', value: 'kyoto' },
+  ],
+}
+
+export function LocationSelector({ onLocationSubmit }: LocationSelectorProps) {
+  const [country, setCountry] = useState<string>('')
+  const [city, setCity] = useState<string>('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [keywords, setKeywords] = useState<string[]>([])
+
+  const handleCountryChange = (value: string) => {
+    setCountry(value)
+    setCity('')
+    setKeywords([])
+  }
+
+  const handleCityChange = async (value: string) => {
+    setCity(value)
+    setIsLoading(true)
+    const kws = await fetchKeywordsByLocation({ country, city: value })
+    setKeywords(kws)
+    setIsLoading(false)
+  }
+
+  const canProceed = country && city && !isLoading
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -13,7 +60,7 @@ export function LocationSelector() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label className="mb-2 block text-sm font-medium">국가</label>
-            <Select>
+            <Select value={country} onValueChange={handleCountryChange}>
               <SelectTrigger>
                 <SelectValue placeholder="국가 선택" />
               </SelectTrigger>
@@ -26,29 +73,39 @@ export function LocationSelector() {
           </div>
           <div>
             <label className="mb-2 block text-sm font-medium">도시</label>
-            <Select>
+            <Select value={city} onValueChange={handleCityChange} disabled={!country}>
               <SelectTrigger>
                 <SelectValue placeholder="도시 선택" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="seoul">서울</SelectItem>
-                <SelectItem value="busan">부산</SelectItem>
-                <SelectItem value="incheon">인천</SelectItem>
+                {(countryToCities[country] || []).map((c) => (
+                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Badge>#후드티</Badge>
-          <Badge variant="secondary">#청바지</Badge>
-          <Badge variant="outline">#뿔테안경</Badge>
-          <Badge>#백팩</Badge>
-          <Badge variant="secondary">#운동화</Badge>
-        </div>
+        {isLoading ? (
+          <div className="space-y-2">
+            <Progress value={60} />
+            <div className="text-sm text-muted-foreground">키워드 불러오는 중...</div>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {keywords.map((k) => (
+              <Badge key={k}>{k}</Badge>
+            ))}
+          </div>
+        )}
 
         <div className="pt-2">
-          <Button type="button" disabled className="w-full">
+          <Button
+            type="button"
+            disabled={!canProceed}
+            onClick={() => onLocationSubmit({ country, city }, keywords)}
+            className="w-full"
+          >
             이어서 진행
           </Button>
         </div>

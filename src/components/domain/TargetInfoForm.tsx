@@ -1,11 +1,37 @@
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Button } from '@/components/ui/button'
+import type { TargetInfo } from '@/types'
 
-export function TargetInfoForm() {
+type TargetInfoFormProps = {
+  disabled?: boolean
+  onFormSubmit: (data: Omit<TargetInfo, 'imageFile'>) => void
+}
+
+export function TargetInfoForm({ disabled, onFormSubmit }: TargetInfoFormProps) {
+  const [shotYear, setShotYear] = useState<string | 'unknown'>('unknown')
+  const [shotMonth, setShotMonth] = useState<string | 'unknown'>('unknown')
+  const [ageUnknown, setAgeUnknown] = useState(false)
+  const [age, setAge] = useState<string>('')
+  const [gender, setGender] = useState<'male' | 'female' | 'unknown'>('unknown')
+
+  const canProceed = (ageUnknown || (!!age && Number(age) >= 0)) && !!shotYear && !!shotMonth && !!gender
+
+  const handleSubmit = () => {
+    if (!canProceed || disabled) return
+    const payload: Omit<TargetInfo, 'imageFile'> = {
+      shotYear,
+      shotMonth,
+      age: ageUnknown ? 'unknown' : Number(age),
+      gender,
+    }
+    onFormSubmit(payload)
+  }
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -15,7 +41,7 @@ export function TargetInfoForm() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label className="mb-2 block text-sm font-medium">촬영 연도</label>
-            <Select>
+            <Select value={shotYear} onValueChange={setShotYear}>
               <SelectTrigger>
                 <SelectValue placeholder="연도 선택" />
               </SelectTrigger>
@@ -31,7 +57,7 @@ export function TargetInfoForm() {
           </div>
           <div>
             <label className="mb-2 block text-sm font-medium">촬영 월</label>
-            <Select>
+            <Select value={shotMonth} onValueChange={setShotMonth}>
               <SelectTrigger>
                 <SelectValue placeholder="월 선택" />
               </SelectTrigger>
@@ -57,10 +83,17 @@ export function TargetInfoForm() {
         <div className="grid grid-cols-[1fr_auto] items-end gap-3">
           <div>
             <label className="mb-2 block text-sm font-medium">촬영 당시 나이</label>
-            <Input type="number" min={0} placeholder="나이 입력" />
+            <Input
+              type="number"
+              min={0}
+              placeholder="나이 입력"
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              disabled={ageUnknown}
+            />
           </div>
           <div className="mb-2 flex items-center gap-2">
-            <Checkbox id="age-unknown" />
+            <Checkbox id="age-unknown" checked={ageUnknown} onCheckedChange={(v) => setAgeUnknown(Boolean(v))} />
             <label htmlFor="age-unknown" className="text-sm">
               모름
             </label>
@@ -69,7 +102,7 @@ export function TargetInfoForm() {
 
         <div>
           <label className="mb-2 block text-sm font-medium">성별</label>
-          <RadioGroup className="flex gap-6">
+          <RadioGroup className="flex gap-6" value={gender} onValueChange={(v) => setGender(v as any)}>
             <div className="flex items-center gap-2">
               <RadioGroupItem value="male" id="gender-male" />
               <label htmlFor="gender-male" className="text-sm">
@@ -92,7 +125,7 @@ export function TargetInfoForm() {
         </div>
 
         <div className="pt-2">
-          <Button type="button" disabled className="w-full">
+          <Button type="button" disabled={!canProceed || disabled} onClick={handleSubmit} className="w-full">
             이어서 진행
           </Button>
         </div>
