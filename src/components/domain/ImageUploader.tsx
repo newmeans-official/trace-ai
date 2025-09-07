@@ -30,13 +30,18 @@ export function ImageUploader({ previewUrl, onFileSelected }: ImageUploaderProps
     <Card className="w-full">
       <CardContent className="p-6">
         {previewUrl ? (
-          <div className="space-y-4" {...getRootProps()}>
-            <input {...getInputProps()} />
-            <img
-              src={previewUrl}
-              alt="업로드 미리보기"
-              className="h-64 w-full rounded-md border object-cover"
-            />
+          <div className="space-y-4">
+            <div
+              className="relative flex h-[360px] w-full cursor-pointer items-center justify-center overflow-hidden rounded-md border bg-muted/20"
+              {...getRootProps()}
+            >
+              <input {...getInputProps()} />
+              <img
+                src={previewUrl}
+                alt="업로드 미리보기"
+                className="max-h-full max-w-full object-contain"
+              />
+            </div>
             <div className="flex">
               <Button type="button" variant="outline" onClick={open}>
                 변경

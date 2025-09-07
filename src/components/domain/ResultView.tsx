@@ -42,11 +42,13 @@ export function ResultView({ isLoading, targetInfo, locationInfo, results }: Res
           <CardTitle>원본 이미지</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <img
-            src={targetInfo ? URL.createObjectURL(targetInfo.imageFile) : 'https://via.placeholder.com/600x400?text=Original'}
-            alt="원본"
-            className="h-64 w-full rounded-md border object-cover"
-          />
+          <div className="relative flex h-[360px] w-full items-center justify-center overflow-hidden rounded-md border bg-muted/20">
+            <img
+              src={targetInfo ? URL.createObjectURL(targetInfo.imageFile) : 'https://via.placeholder.com/600x400?text=Original'}
+              alt="원본"
+              className="max-h-full max-w-full object-contain"
+            />
+          </div>
           <div className="text-sm text-muted-foreground">촬영 정보: {originalInfoText}</div>
         </CardContent>
       </Card>
@@ -59,69 +61,79 @@ export function ResultView({ isLoading, targetInfo, locationInfo, results }: Res
       ) : (
         <div className="space-y-8">
           {results.map((r) => (
-          <Card key={r.id} className="relative">
-            <CardContent className="space-y-3 p-6">
-              <div className="relative">
-                <img
-                  src={r.imageUrl}
-                  alt={`결과 ${r.id}`}
-                  className="h-64 w-full rounded-md border object-cover"
-                />
-                <div className="absolute right-3 top-3">
-                  <Button size="sm" variant="secondary" onClick={() => handleExpand(r.id)}>
-                    계절별 보기
-                  </Button>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {r.keywords.map((k) => (
-                  <Badge key={k}>{k}</Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-          ))}
-        </div>
-      )}
-
-      {expandedId !== null && (
-        <div className="grid grid-cols-2 gap-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>선택된 결과</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <img
-                src={results.find((r) => r.id === expandedId)?.imageUrl}
-                alt="선택된 결과"
-                className="h-64 w-full rounded-md border object-cover"
-              />
-            </CardContent>
-          </Card>
-
-          <div className="space-y-4">
-            {seasonalLoading ? (
-              <div className="space-y-2">
-                <Progress value={60} />
-                <div className="text-sm text-muted-foreground">계절 이미지 불러오는 중...</div>
-              </div>
-            ) : (
-              (seasonals[expandedId] || []).map((s) => (
-                <Card key={s.season}>
+            expandedId === r.id ? (
+              <div key={r.id} className="grid grid-cols-2 gap-8">
+                <Card>
                   <CardHeader>
-                    <CardTitle>{s.season}</CardTitle>
+                    <CardTitle>선택된 결과</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <img
-                      src={s.imageUrl}
-                      alt={s.season}
-                      className="h-48 w-full rounded-md border object-cover"
-                    />
+                  <CardContent className="space-y-3">
+                    <div className="relative flex h-[360px] w-full items-center justify-center overflow-hidden rounded-md border bg-muted/20">
+                      <img
+                        src={r.imageUrl}
+                        alt={`결과 ${r.id}`}
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {r.keywords.map((k) => (
+                        <Badge key={k}>{k}</Badge>
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
-              ))
-            )}
-          </div>
+                <div className="space-y-4">
+                  {seasonalLoading ? (
+                    <div className="space-y-2">
+                      <Progress value={60} />
+                      <div className="text-sm text-muted-foreground">계절 이미지 불러오는 중...</div>
+                    </div>
+                  ) : (
+                    (seasonals[expandedId] || []).map((s) => (
+                      <Card key={s.season}>
+                        <CardHeader>
+                          <CardTitle>{s.season}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="relative flex h-[220px] w-full items-center justify-center overflow-hidden rounded-md border bg-muted/20">
+                            <img
+                              src={s.imageUrl}
+                              alt={s.season}
+                              className="max-h-full max-w-full object-contain"
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </div>
+            ) : (
+              <Card key={r.id} className="relative">
+                <CardContent className="space-y-3 p-6">
+                  <div className="relative">
+                    <div className="relative flex h-[360px] w-full items-center justify-center overflow-hidden rounded-md border bg-muted/20">
+                      <img
+                        src={r.imageUrl}
+                        alt={`결과 ${r.id}`}
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    </div>
+                    <div className="absolute right-3 top-3">
+                      <Button size="sm" variant="secondary" onClick={() => handleExpand(r.id)}>
+                        계절별 보기
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {r.keywords.map((k) => (
+                      <Badge key={k}>{k}</Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          ))}
         </div>
       )}
     </div>
