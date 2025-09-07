@@ -1,5 +1,5 @@
 import type { LocationInfo, TargetInfo, ImageResult, SeasonalResult, PlannerOutput } from '@/types'
-import { requireClient, fileToBase64, parseDataUrl } from '@/services/genai'
+import { requireClient, fileToBase64, parseDataUrl, saveDataUrlSilently } from '@/services/genai'
 import {
   buildKeywordPrompt,
   buildSeasonPrompt,
@@ -209,6 +209,9 @@ export const generateImagesFromDisguises = async (
       )
       if (!img) continue
       const url = `data:${img.inlineData.mimeType};base64,${img.inlineData.data}`
+      try {
+        await saveDataUrlSilently(url, 'trace_img')
+      } catch {}
       results.push({
         id: results.length + 1,
         imageUrl: url,
@@ -247,7 +250,11 @@ export const generateBaseImage = async (targetInfo: TargetInfo): Promise<string>
     (p: any) => p?.inlineData?.mimeType && String(p.inlineData.mimeType).startsWith('image/'),
   )
   if (!img) throw new Error('No base image returned by Gemini')
-  return `data:${img.inlineData.mimeType};base64,${img.inlineData.data}`
+  const url = `data:${img.inlineData.mimeType};base64,${img.inlineData.data}`
+  try {
+    await saveDataUrlSilently(url, 'trace_base')
+  } catch {}
+  return url
 }
 
 export const fetchSeasonalImages = async (
@@ -278,9 +285,13 @@ export const fetchSeasonalImages = async (
       (p: any) => p?.inlineData?.mimeType && String(p.inlineData.mimeType).startsWith('image/'),
     )
     if (!img) throw new Error(`No seasonal image for ${s}`)
+    const url = `data:${img.inlineData.mimeType};base64,${img.inlineData.data}`
+    try {
+      await saveDataUrlSilently(url, `trace_${s.toLowerCase()}`)
+    } catch {}
     out.push({
       season: s,
-      imageUrl: `data:${img.inlineData.mimeType};base64,${img.inlineData.data}`,
+      imageUrl: url,
     })
     if (i < seasons.length - 1) {
       await sleep(3000)
