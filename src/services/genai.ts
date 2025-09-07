@@ -19,3 +19,9 @@ export async function fileToBase64(file: File): Promise<string> {
   }
   return btoa(binary)
 }
+
+export function parseDataUrl(dataUrl: string): { mimeType: string; base64: string } | null {
+  const m = dataUrl.match(/^data:([^;]+);base64,(.*)$/)
+  if (!m) return null
+  return { mimeType: m[1], base64: m[2] }
+}

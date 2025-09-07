@@ -1,7 +1,14 @@
 import type { LocationInfo, TargetInfo, ImageResult, SeasonalResult } from '@/types'
 import { Type } from '@google/genai'
-import { requireClient, fileToBase64 } from '@/services/genai'
-import { buildKeywordPrompt, buildImagePrompt, buildSeasonPrompt } from '@/services/prompts'
+import { requireClient, fileToBase64, parseDataUrl } from '@/services/genai'
+import {
+  buildKeywordPrompt,
+  buildImagePrompt,
+  buildSeasonPrompt,
+  buildBaseImagePrompt,
+} from '@/services/prompts'
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export const fetchKeywordsByLocation = async (
   location: LocationInfo,
@@ -89,15 +96,51 @@ export const generateImages = async (
   }))
 }
 
-export const fetchSeasonalImages = async (resultId: number): Promise<SeasonalResult[]> => {
+export const generateBaseImage = async (targetInfo: TargetInfo): Promise<string> => {
+  const ai = requireClient()
+  const imageBase64 = await fileToBase64(targetInfo.imageFile)
+  const mimeType = targetInfo.imageFile.type || 'image/jpeg'
+  const prompt = buildBaseImagePrompt({
+    shotYear: targetInfo.shotYear,
+    shotMonth: targetInfo.shotMonth,
+    age: targetInfo.age,
+    gender: targetInfo.gender,
+    ethnicity: targetInfo.ethnicity,
+    features: targetInfo.features,
+  })
+  const res = await ai.models.generateContent({
+    model: 'gemini-2.5-flash-image-preview',
+    contents: [{ inlineData: { data: imageBase64, mimeType } } as any, { text: prompt } as any],
+  })
+  const parts = (res as any)?.candidates?.[0]?.content?.parts ?? []
+  const img = parts.find(
+    (p: any) => p?.inlineData?.mimeType && String(p.inlineData.mimeType).startsWith('image/'),
+  )
+  if (!img) throw new Error('No base image returned by Gemini')
+  return `data:${img.inlineData.mimeType};base64,${img.inlineData.data}`
+}
+
+export const fetchSeasonalImages = async (
+  resultId: number,
+  baseImageDataUrl?: string,
+): Promise<SeasonalResult[]> => {
   const ai = requireClient()
   const seasons: SeasonalResult['season'][] = ['Summer', 'Winter', 'Spring']
   const out: SeasonalResult[] = []
-  for (const s of seasons as SeasonalResult['season'][]) {
+  for (let i = 0; i < seasons.length; i++) {
+    const s = seasons[i]
     const prompt = buildSeasonPrompt(s)
+    const contentParts: any[] = []
+    if (baseImageDataUrl) {
+      const parsed = parseDataUrl(baseImageDataUrl)
+      if (parsed) {
+        contentParts.push({ inlineData: { data: parsed.base64, mimeType: parsed.mimeType } } as any)
+      }
+    }
+    contentParts.push({ text: prompt } as any)
     const res = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image-preview',
-      contents: [{ text: prompt } as any],
+      contents: contentParts,
     })
     const parts = (res as any)?.candidates?.[0]?.content?.parts ?? []
     const img = parts.find(
@@ -108,6 +151,9 @@ export const fetchSeasonalImages = async (resultId: number): Promise<SeasonalRes
       season: s,
       imageUrl: `data:${img.inlineData.mimeType};base64,${img.inlineData.data}`,
     })
+    if (i < seasons.length - 1) {
+      await sleep(3000)
+    }
   }
   return out
 }

@@ -45,7 +45,8 @@ export function ResultView({ isLoading, targetInfo, locationInfo, results }: Res
       return next
     })
     try {
-      const imgs = await fetchSeasonalImages(id)
+      const base = results.find((r) => r.id === id)?.imageUrl
+      const imgs = await fetchSeasonalImages(id, base)
       setSeasonals((prev) => ({ ...prev, [id]: imgs }))
       setErrors((prev) => ({ ...prev, [id]: undefined }))
     } catch (e: any) {

@@ -4,6 +4,8 @@ export interface TargetInfo {
   shotMonth: string | 'unknown'
   age: number | 'unknown'
   gender: 'male' | 'female' | 'unknown'
+  ethnicity?: string
+  features?: string
 }
 
 export interface LocationInfo {
