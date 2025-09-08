@@ -4,6 +4,8 @@ A single-page React application that turns composite sketches into photorealisti
 
 ## Preview
 
+[🎥 Demo Video](https://drive.google.com/file/d/1bi2yBpv9RIp2KHnCww9KoW0s8tWf7pZf/view?usp=sharing)
+
 ![App full-page screenshot](public/screencapture.png)
 
 ## Tech Stack
